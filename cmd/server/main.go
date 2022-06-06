@@ -5,11 +5,18 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"github.com/go-ozzo/ozzo-dbx"
-	"github.com/go-ozzo/ozzo-routing/v2"
+	"net/http"
+	"os"
+	"time"
+
+	dbx "github.com/go-ozzo/ozzo-dbx"
+	routing "github.com/go-ozzo/ozzo-routing/v2"
 	"github.com/go-ozzo/ozzo-routing/v2/content"
 	"github.com/go-ozzo/ozzo-routing/v2/cors"
 	_ "github.com/lib/pq"
+	httpSwagger "github.com/swaggo/http-swagger"
+
+	_ "github.com/qiangxue/go-rest-api/docs"
 	"github.com/qiangxue/go-rest-api/internal/album"
 	"github.com/qiangxue/go-rest-api/internal/auth"
 	"github.com/qiangxue/go-rest-api/internal/config"
@@ -18,9 +25,6 @@ import (
 	"github.com/qiangxue/go-rest-api/pkg/accesslog"
 	"github.com/qiangxue/go-rest-api/pkg/dbcontext"
 	"github.com/qiangxue/go-rest-api/pkg/log"
-	"net/http"
-	"os"
-	"time"
 )
 
 // Version indicates the current version of the application.
@@ -28,6 +32,14 @@ var Version = "1.0.0"
 
 var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
 
+// GetRouter configures a chi router and starts the http server
+// @title My API
+// @description This API is a sample go-api.
+// @description It also does this.
+// @contact.name Jonny Langefeld
+// @contact.email jonny.langefeld@gmail.com
+// @host example.com
+// @BasePath /
 func main() {
 	flag.Parse()
 	// create root logger tagged with server version
@@ -84,6 +96,7 @@ func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.
 	healthcheck.RegisterHandlers(router, Version)
 
 	rg := router.Group("/v1")
+	rg.Get("/swagger*", httpSwagger.Handler())
 
 	authHandler := auth.Handler(cfg.JWTSigningKey)
 
