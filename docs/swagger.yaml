@@ -1,0 +1,13 @@
+basePath: /
+host: example.com
+info:
+  contact:
+    email: jonny.langefeld@gmail.com
+    name: Jonny Langefeld
+  description: |-
+    This API is a sample go-api.
+    It also does this.
+  license: {}
+  title: My API
+paths: {}
+swagger: "2.0"

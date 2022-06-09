@@ -1,0 +1,15 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This API is a sample go-api.\nIt also does this.",
+        "title": "My API",
+        "contact": {
+            "name": "Jonny Langefeld",
+            "email": "jonny.langefeld@gmail.com"
+        },
+        "license": {}
+    },
+    "host": "example.com",
+    "basePath": "/",
+    "paths": {}
+}
