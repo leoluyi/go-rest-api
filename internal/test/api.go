@@ -2,18 +2,20 @@ package test
 
 import (
 	"bytes"
-	routing "github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	routing "github.com/go-ozzo/ozzo-routing/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 // APITestCase represents the data needed to describe an API test case.
 type APITestCase struct {
 	Name         string
-	Method, URL  string
+	Method       string
+	URL          string
 	Body         string
 	Header       http.Header
 	WantStatus   int
