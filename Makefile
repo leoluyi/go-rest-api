@@ -29,8 +29,17 @@ test: ## run unit tests
 test-cover: test ## run unit tests and show test coverage information
 	go tool cover -html=coverage-all.out
 
+.PHONY: generate-docs
+generate-docs:
+	@swag init -g cmd/server/main.go
+	@go run ./vendor/github.com/swaggo/swag/cmd/swag/main.go init -g cmd/server/main.go
+
 .PHONY: run
 run: ## run the API server
+	go run ${LDFLAGS} cmd/server/main.go
+
+.PHONY: run-with-db
+run-with-db: db-start ## run the API server with database server
 	go run ${LDFLAGS} cmd/server/main.go
 
 .PHONY: run-restart
@@ -64,9 +73,14 @@ version: ## display the version of the API server
 .PHONY: db-start
 db-start: ## start the database server
 	@mkdir -p testdata/postgres
-	docker run --rm --name postgres -v $(shell pwd)/testdata:/testdata \
-		-v $(shell pwd)/testdata/postgres:/var/lib/postgresql/data \
-		-e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=go_restful -d -p 5432:5432 postgres
+	docker start postgres &>/dev/null || docker run -d --rm \
+	  --name postgres \
+	  -e POSTGRES_DB=go_restful \
+	  -e POSTGRES_PASSWORD=postgres \
+	  -p 5433:5432 \
+	  -v $(shell pwd)/testdata:/testdata \
+	  -v $(shell pwd)/testdata/postgres:/var/lib/postgresql/data \
+	  postgres
 
 .PHONY: db-stop
 db-stop: ## stop the database server
