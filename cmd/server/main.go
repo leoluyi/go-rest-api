@@ -43,7 +43,7 @@ var flagConfig = flag.String("config", "./config/local.yml", "path to the config
 func main() {
 	flag.Parse()
 	// create root logger tagged with server version
-	logger := log.New().With(nil, "version", Version)
+	logger := log.New().With(context.TODO(), "version", Version)
 
 	// load application configurations
 	cfg, err := config.Load(*flagConfig, logger)
@@ -96,7 +96,7 @@ func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.
 	healthcheck.RegisterHandlers(router, Version)
 
 	rg := router.Group("/v1")
-	rg.Get("/swagger*", httpSwagger.Handler())
+	rg.Get("/swagger*", routing.HTTPHandlerFunc(httpSwagger.Handler()))
 
 	authHandler := auth.Handler(cfg.JWTSigningKey)
 
