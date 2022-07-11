@@ -9,10 +9,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 	dbx "github.com/go-ozzo/ozzo-dbx"
 	routing "github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/go-ozzo/ozzo-routing/v2/content"
-	"github.com/go-ozzo/ozzo-routing/v2/cors"
 	_ "github.com/lib/pq"
 	httpSwagger "github.com/swaggo/http-swagger"
 
@@ -91,28 +92,32 @@ func main() {
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
 func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.Handler {
-	router := routing.New()
+	router := chi.NewRouter()
 
 	router.Use(
 		accesslog.Handler(logger),
 		errors.Handler(logger),
-		content.TypeNegotiator(content.JSON),
-		cors.Handler(cors.AllowAll),
+		middleware.AllowContentType("application/json"),
+		cors.AllowAll().Handler,
 	)
 
 	healthcheck.RegisterHandlers(router, Version)
 
-	rg := router.Group("/v1")
-	rg.Get("/swagger*", routing.HTTPHandlerFunc(httpSwagger.Handler()))
+	rg := router.Route("/v1", func(r chi.Router) {
+		r.Get("/swagger*", httpSwagger.Handler())
+	})
 
 	authHandler := auth.Handler(cfg.JWTSigningKey)
 
-	album.RegisterHandlers(rg.Group(""),
-		album.NewService(album.NewRepository(db, logger), logger),
-		authHandler, logger,
+	rg.Mount("",
+		album.Routes(
+			album.NewService(album.NewRepository(db, logger), logger),
+			authHandler,
+			logger,
+		),
 	)
 
-	auth.RegisterHandlers(rg.Group(""),
+	auth.RegisterHandlers(rg,
 		auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, logger),
 		logger,
 	)

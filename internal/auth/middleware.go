@@ -5,15 +5,18 @@ import (
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-chi/jwtauth/v5"
 	routing "github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/go-ozzo/ozzo-routing/v2/auth"
 	"github.com/qiangxue/go-rest-api/internal/entity"
 	"github.com/qiangxue/go-rest-api/internal/errors"
 )
 
+var tokenAuth *jwtauth.JWTAuth
+
 // Handler returns a JWT-based authentication middleware.
-func Handler(verificationKey string) routing.Handler {
-	return auth.JWT(verificationKey, auth.JWTOptions{TokenHandler: handleToken})
+func Handler(JWTSigningKey string) func(http.Handler) http.Handler {
+	tokenAuth = jwtauth.New("HS256", []byte(JWTSigningKey), nil)
+	return jwtauth.Verifier(tokenAuth)
 }
 
 // handleToken stores the user identity in the request context so that it can be accessed elsewhere.
@@ -26,12 +29,6 @@ func handleToken(c *routing.Context, token *jwt.Token) error {
 	c.Request = c.Request.WithContext(ctx)
 	return nil
 }
-
-type contextKey int
-
-const (
-	userKey contextKey = iota
-)
 
 // WithUser returns a context that contains the user identity from the given JWT.
 func WithUser(ctx context.Context, id, name string) context.Context {

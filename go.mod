@@ -6,6 +6,11 @@ require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/go-chi/chi v1.5.4 // indirect
+	github.com/go-chi/cors v1.2.1 // indirect
+	github.com/go-chi/jwtauth v1.2.0 // indirect
+	github.com/go-chi/jwtauth/v5 v5.0.2 // indirect
+	github.com/go-chi/render v1.0.1 // indirect
 	github.com/go-openapi/spec v0.20.6 // indirect
 	github.com/go-openapi/swag v0.21.1 // indirect
 	github.com/go-ozzo/ozzo-dbx v1.5.0
