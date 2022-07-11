@@ -13,50 +13,54 @@ import (
 )
 
 // Handler creates a middleware that handles panics and errors encountered during HTTP request processing.
-func Handler(logger log.Logger) routing.Handler {
-	return func(c *routing.Context) (err error) {
-		defer func() {
-			l := logger.With(c.Request.Context())
-			if e := recover(); e != nil {
-				var ok bool
-				if err, ok = e.(error); !ok {
-					err = fmt.Errorf("%v", e)
+func Handler(logger log.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			var err error
+			defer func() {
+				l := logger.With(r.Context())
+				if e := recover(); e != nil {
+					var ok bool
+					if err, ok = e.(error); !ok {
+						err = fmt.Errorf("%v", e)
+					}
+
+					l.Errorf("recovered from panic (%v): %s", err, debug.Stack())
 				}
 
-				l.Errorf("recovered from panic (%v): %s", err, debug.Stack())
-			}
+				if err != nil {
+					res := buildErrorResponse(err)
+					if res.StatusCode() == http.StatusInternalServerError {
+						l.Errorf("encountered internal server error: %v", err)
+					}
+					w.WriteHeader(res.StatusCode())
+					if _, err = w.Write([]byte(res.Message)); err != nil {
+						l.Errorf("failed writing error response: %v", err)
+					}
+					err = nil // return nil because the error is already handled
+				}
+			}()
 
-			if err != nil {
-				res := buildErrorResponse(err)
-				if res.StatusCode() == http.StatusInternalServerError {
-					l.Errorf("encountered internal server error: %v", err)
-				}
-				c.Response.WriteHeader(res.StatusCode())
-				if err = c.Write(res); err != nil {
-					l.Errorf("failed writing error response: %v", err)
-				}
-				c.Abort() // skip any pending handlers since an error has occurred
-				err = nil // return nil because the error is already handled
-			}
-		}()
-		return c.Next()
+			next.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
 	}
 }
 
 // buildErrorResponse builds an error response from an error.
 func buildErrorResponse(err error) ErrorResponse {
-	switch err.(type) {
+	switch err := err.(type) {
 	case ErrorResponse:
-		return err.(ErrorResponse)
+		return err
 	case validation.Errors:
-		return InvalidInput(err.(validation.Errors))
+		return InvalidInput(err)
 	case routing.HTTPError:
-		switch err.(routing.HTTPError).StatusCode() {
+		switch err.StatusCode() {
 		case http.StatusNotFound:
 			return NotFound("")
 		default:
 			return ErrorResponse{
-				Status:  err.(routing.HTTPError).StatusCode(),
+				Status:  err.StatusCode(),
 				Message: err.Error(),
 			}
 		}
