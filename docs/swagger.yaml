@@ -1,13 +1,52 @@
-basePath: /
-host: example.com
+basePath: /v1
+host: petstore.swagger.io
 info:
   contact:
-    email: jonny.langefeld@gmail.com
-    name: Jonny Langefeld
-  description: |-
-    This API is a sample go-api.
-    It also does this.
-  license: {}
-  title: My API
-paths: {}
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server Petstore server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Example API
+  version: "1.0"
+paths:
+  /albums/{id}:
+    get:
+      description: GetArticle returns a single article by id
+      parameters:
+      - description: article id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: ""
+        "404":
+          description: ""
+      summary: Get albums by id
+      tags:
+      - Albums
+  /login/{id}:
+    post:
+      description: Authenticates a user and generates a JWT
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: ""
+        "404":
+          description: ""
+      summary: Authenticates a user
+      tags:
+      - Auth
 swagger: "2.0"

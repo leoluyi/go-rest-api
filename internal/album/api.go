@@ -10,6 +10,15 @@ import (
 )
 
 // RegisterHandlers sets up the routing of the HTTP handlers.
+// @Summary Get albums by id
+// @Description GetArticle returns a single article by id
+// @Tags Albums
+// @Produce json
+// @Param id path string true "article id"
+// @Router /albums/{id} [get]
+// @Success 200
+// @Failure 400
+// @Failure 404
 func RegisterHandlers(r *routing.RouteGroup, service Service, authHandler routing.Handler, logger log.Logger) {
 	res := resource{service, logger}
 

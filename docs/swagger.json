@@ -1,15 +1,77 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "This API is a sample go-api.\nIt also does this.",
-        "title": "My API",
+        "description": "This is a sample server Petstore server.",
+        "title": "Swagger Example API",
+        "termsOfService": "http://swagger.io/terms/",
         "contact": {
-            "name": "Jonny Langefeld",
-            "email": "jonny.langefeld@gmail.com"
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
         },
-        "license": {}
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
     },
-    "host": "example.com",
-    "basePath": "/",
-    "paths": {}
+    "host": "petstore.swagger.io",
+    "basePath": "/v1",
+    "paths": {
+        "/albums/{id}": {
+            "get": {
+                "description": "GetArticle returns a single article by id",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Albums"
+                ],
+                "summary": "Get albums by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "article id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "400": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/login/{id}": {
+            "post": {
+                "description": "Authenticates a user and generates a JWT",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Authenticates a user",
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "400": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        }
+    }
 }

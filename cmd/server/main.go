@@ -33,13 +33,20 @@ var Version = "1.0.0"
 var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
 
 // GetRouter configures a chi router and starts the http server
-// @title My API
-// @description This API is a sample go-api.
-// @description It also does this.
-// @contact.name Jonny Langefeld
-// @contact.email jonny.langefeld@gmail.com
-// @host example.com
-// @BasePath /
+// @title Swagger Example API
+// @version 1.0
+// @description This is a sample server Petstore server.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host petstore.swagger.io
+// @BasePath /v1
 func main() {
 	flag.Parse()
 	// create root logger tagged with server version

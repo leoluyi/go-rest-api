@@ -32,7 +32,6 @@ test-cover: test ## run unit tests and show test coverage information
 .PHONY: generate-docs
 generate-docs:
 	@swag init -g cmd/server/main.go
-	@go run ./vendor/github.com/swaggo/swag/cmd/swag/main.go init -g cmd/server/main.go
 
 .PHONY: run
 run: ## run the API server
