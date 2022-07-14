@@ -59,7 +59,7 @@ build:  ## build the API server binary
 
 .PHONY: build-docker
 build-docker: ## build the API server as a docker image
-	docker build -f cmd/server/Dockerfile -t server .
+	docker build -f cmd/server/Dockerfile -t server:$(VERSION) .
 
 .PHONY: clean
 clean: ## remove temporary files
