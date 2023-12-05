@@ -5,7 +5,7 @@ LDFLAGS := -ldflags "-X main.Version=${VERSION}"
 
 CONFIG_FILE ?= ./config/local.yml
 APP_DSN ?= $(shell sed -n 's/^dsn:[[:space:]]*"\(.*\)"/\1/p' $(CONFIG_FILE))
-MIGRATE := docker run -v $(shell pwd)/migrations:/migrations --network host migrate/migrate:v4.10.0 -path=/migrations/ -database "$(APP_DSN)"
+MIGRATE := docker run --rm --name migrate -v $(shell pwd)/migrations:/migrations --network host migrate/migrate:v4.16.2 -path=/migrations/ -database "$(APP_DSN)"
 
 PID_FILE := './.pid'
 FSWATCH_FILE := './fswatch.cfg'
@@ -79,7 +79,7 @@ db-start: ## start the database server
 	  -p 5432:5432 \
 	  -v $(shell pwd)/testdata:/testdata \
 	  -v $(shell pwd)/testdata/postgres:/var/lib/postgresql/data \
-	  postgres
+	  postgres:14.10
 
 .PHONY: db-stop
 db-stop: ## stop the database server
@@ -117,6 +117,6 @@ migrate-new: ## create a new database migration
 .PHONY: migrate-reset
 migrate-reset: ## reset database and re-run all migrations
 	@echo "Resetting database..."
-	@$(MIGRATE) drop
+	@$(MIGRATE) drop -f
 	@echo "Running all database migrations..."
 	@$(MIGRATE) up
