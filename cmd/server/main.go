@@ -94,7 +94,7 @@ func main() {
 	address := fmt.Sprintf(":%v", cfg.ServerPort)
 	hs := &http.Server{
 		Addr:    address,
-		Handler: buildHandler(logger, db, dbcontext.New(db), cfg),
+		Handler: buildHandler(logger, db, dbcontext.New(db), cfg, docs.SwaggerInfo.BasePath),
 	}
 
 	// start the HTTP server with graceful shutdown
@@ -139,7 +139,8 @@ func runMigrations(db *sqlx.DB, logger log.Logger) error {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(logger log.Logger, rawDB *sqlx.DB, db *dbcontext.DB, cfg *config.Config) http.Handler {
+// basePath is the API route prefix (e.g. "/v1"), sourced from docs.SwaggerInfo.BasePath.
+func buildHandler(logger log.Logger, rawDB *sqlx.DB, db *dbcontext.DB, cfg *config.Config, basePath string) http.Handler {
 	router := chi.NewRouter()
 
 	router.Use(
@@ -158,7 +159,7 @@ func buildHandler(logger log.Logger, rawDB *sqlx.DB, db *dbcontext.DB, cfg *conf
 	healthcheck.RegisterHandlers(router, Version, rawDB)
 	router.Method(http.MethodGet, "/metrics", metrics.Handler())
 
-	router.Route("/v1", func(r chi.Router) {
+	router.Route(basePath, func(r chi.Router) {
 		r.Get("/swagger/*", httpSwagger.Handler())
 
 		authHandler := auth.Handler(cfg.JWTSigningKey)
