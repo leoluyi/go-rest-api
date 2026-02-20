@@ -33,8 +33,9 @@ import (
 	"github.com/leoluyi/go-api-template/pkg/metrics"
 )
 
-// Version indicates the current version of the application.
-var Version = "2.7.0"
+// Version is set at build time via -ldflags "-X main.Version=$(git describe --tags)".
+// Falls back to "dev" when built without the Makefile (e.g. go run ./cmd/server).
+var Version = "dev"
 
 var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
 
