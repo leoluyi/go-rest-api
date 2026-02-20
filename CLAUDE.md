@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Go RESTful API starter kit demonstrating clean architecture with PostgreSQL. Currently on the `feat/go-chi` branch, which migrates routing from `ozzo-routing` to `go-chi`.
+Go RESTful API starter kit demonstrating clean architecture with PostgreSQL.
 
 Module: `github.com/qiangxue/go-rest-api`
 
@@ -87,7 +87,7 @@ Shared domain models live in `internal/entity/`. Cross-cutting packages (logging
 
 ### Request flow
 
-`chi router` → auth middleware → handler (`api.go`) → service (`service.go`) → repository (`repository.go`) → PostgreSQL via `ozzo-dbx`
+`chi router` → auth middleware → handler (`api.go`) → service (`service.go`) → repository (`repository.go`) → PostgreSQL via `sqlx`
 
 ### Key interfaces
 
