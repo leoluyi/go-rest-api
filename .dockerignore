@@ -2,7 +2,6 @@
 vendor
 testdata
 scripts
-docs
 coverage*.out
 coverage.out
 .pid
