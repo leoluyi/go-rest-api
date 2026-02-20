@@ -20,7 +20,7 @@ import (
 	_ "github.com/lib/pq"
 	httpSwagger "github.com/swaggo/http-swagger"
 
-	_ "github.com/leoluyi/go-api-template/docs"
+	"github.com/leoluyi/go-api-template/docs"
 	"github.com/leoluyi/go-api-template/internal/album"
 	"github.com/leoluyi/go-api-template/internal/auth"
 	"github.com/leoluyi/go-api-template/internal/config"
@@ -40,7 +40,7 @@ var Version = "dev"
 var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
 
 // @title           Go API Template
-// @version         2.7.0
+// @version         1.0
 // @description     RESTful API starter kit built with Go, chi, and PostgreSQL.
 
 // @contact.name    Issues
@@ -57,6 +57,8 @@ var flagConfig = flag.String("config", "./config/local.yml", "path to the config
 // @name            Authorization
 func main() {
 	flag.Parse()
+	docs.SwaggerInfo.Version = Version
+
 	// create root logger tagged with server version
 	logger := log.New().With(context.TODO(), "version", Version)
 
