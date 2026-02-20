@@ -5,32 +5,36 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-ozzo/ozzo-routing/v2/access"
 	"github.com/qiangxue/go-rest-api/pkg/log"
 )
 
+type responseWriter struct {
+	http.ResponseWriter
+	status       int
+	bytesWritten int64
+}
+
+func (rw *responseWriter) WriteHeader(status int) {
+	rw.status = status
+	rw.ResponseWriter.WriteHeader(status)
+}
+
+func (rw *responseWriter) Write(b []byte) (int, error) {
+	n, err := rw.ResponseWriter.Write(b)
+	rw.bytesWritten += int64(n)
+	return n, err
+}
+
 // Handler returns a middleware that records an access log message for every HTTP request being processed.
-// https://github.com/go-chi/httplog/blob/master/httplog.go#L44
 func Handler(logger log.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-
-			rw := &access.LogResponseWriter{
-				ResponseWriter: w,
-				Status:         http.StatusOK,
-			}
-
-			// associate request ID and session ID with the request context
-			// so that they can be added to the log messages
-			ctx := r.Context()
-			ctx = log.WithRequest(ctx, r)
-
+			rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}
+			ctx := log.WithRequest(r.Context(), r)
 			next.ServeHTTP(rw, r.WithContext(ctx))
-
-			// generate an access log message
-			logger.With(ctx, "duration", time.Since(start).Milliseconds(), "status", rw.Status).
-				Infof("%s %s %s %d %d", r.Method, r.URL.Path, r.Proto, rw.Status, rw.BytesWritten)
+			logger.With(ctx, "duration", time.Since(start).Milliseconds(), "status", rw.status).
+				Infof("%s %s %s %d %d", r.Method, r.URL.Path, r.Proto, rw.status, rw.bytesWritten)
 		}
 		return http.HandlerFunc(fn)
 	}

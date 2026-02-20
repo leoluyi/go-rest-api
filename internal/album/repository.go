@@ -3,6 +3,7 @@ package album
 import (
 	"context"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/qiangxue/go-rest-api/internal/entity"
 	"github.com/qiangxue/go-rest-api/pkg/dbcontext"
 	"github.com/qiangxue/go-rest-api/pkg/log"
@@ -38,19 +39,26 @@ func NewRepository(db *dbcontext.DB, logger log.Logger) Repository {
 // Get reads the album with the specified ID from the database.
 func (r repository) Get(ctx context.Context, id string) (entity.Album, error) {
 	var album entity.Album
-	err := r.db.With(ctx).Select().Model(id, &album)
+	err := sqlx.GetContext(ctx, r.db.With(ctx), &album, "SELECT * FROM album WHERE id=$1", id)
 	return album, err
 }
 
 // Create saves a new album record in the database.
-// It returns the ID of the newly inserted album record.
 func (r repository) Create(ctx context.Context, album entity.Album) error {
-	return r.db.With(ctx).Model(&album).Insert()
+	_, err := r.db.With(ctx).ExecContext(ctx,
+		"INSERT INTO album (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)",
+		album.ID, album.Name, album.CreatedAt, album.UpdatedAt,
+	)
+	return err
 }
 
 // Update saves the changes to an album in the database.
 func (r repository) Update(ctx context.Context, album entity.Album) error {
-	return r.db.With(ctx).Model(&album).Update()
+	_, err := r.db.With(ctx).ExecContext(ctx,
+		"UPDATE album SET name=$1, updated_at=$2 WHERE id=$3",
+		album.Name, album.UpdatedAt, album.ID,
+	)
+	return err
 }
 
 // Delete deletes an album with the specified ID from the database.
@@ -59,24 +67,22 @@ func (r repository) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	return r.db.With(ctx).Model(&album).Delete()
+	_, err = r.db.With(ctx).ExecContext(ctx, "DELETE FROM album WHERE id=$1", album.ID)
+	return err
 }
 
 // Count returns the number of the album records in the database.
 func (r repository) Count(ctx context.Context) (int, error) {
 	var count int
-	err := r.db.With(ctx).Select("COUNT(*)").From("album").Row(&count)
+	err := sqlx.GetContext(ctx, r.db.With(ctx), &count, "SELECT COUNT(*) FROM album")
 	return count, err
 }
 
 // Query retrieves the album records with the specified offset and limit from the database.
 func (r repository) Query(ctx context.Context, offset, limit int) ([]entity.Album, error) {
 	var albums []entity.Album
-	err := r.db.With(ctx).
-		Select().
-		OrderBy("id").
-		Offset(int64(offset)).
-		Limit(int64(limit)).
-		All(&albums)
+	err := sqlx.SelectContext(ctx, r.db.With(ctx), &albums,
+		"SELECT * FROM album ORDER BY id OFFSET $1 LIMIT $2", offset, limit,
+	)
 	return albums, err
 }

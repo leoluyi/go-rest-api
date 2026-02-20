@@ -3,10 +3,9 @@ package auth
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/qiangxue/go-rest-api/internal/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,31 +24,24 @@ func TestHandler(t *testing.T) {
 	assert.NotNil(t, Handler("test"))
 }
 
-func Test_handleToken(t *testing.T) {
-	req, _ := http.NewRequest("GET", "http://example.com", nil)
-	ctx, _ := test.MockRoutingContext(req)
-	assert.Nil(t, CurrentUser(ctx.Request.Context()))
-
-	err := handleToken(ctx, &jwt.Token{
-		Claims: jwt.MapClaims{
-			"id":   "100",
-			"name": "test",
-		},
+func TestMockAuthHandler(t *testing.T) {
+	called := false
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		assert.NotNil(t, CurrentUser(r.Context()))
 	})
-	assert.Nil(t, err)
-	identity := CurrentUser(ctx.Request.Context())
-	if assert.NotNil(t, identity) {
-		assert.Equal(t, "100", identity.GetID())
-		assert.Equal(t, "test", identity.GetName())
-	}
-}
 
-func TestMocks(t *testing.T) {
-	req, _ := http.NewRequest("GET", "http://example.com", nil)
-	ctx, _ := test.MockRoutingContext(req)
-	assert.NotNil(t, MockAuthHandler(ctx))
+	// unauthorized request
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	res := httptest.NewRecorder()
+	MockAuthHandler(next).ServeHTTP(res, req)
+	assert.False(t, called)
+	assert.Equal(t, http.StatusUnauthorized, res.Code)
+
+	// authorized request
+	req = httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header = MockAuthHeader()
-	ctx, _ = test.MockRoutingContext(req)
-	assert.Nil(t, MockAuthHandler(ctx))
-	assert.NotNil(t, CurrentUser(ctx.Request.Context()))
+	res = httptest.NewRecorder()
+	MockAuthHandler(next).ServeHTTP(res, req)
+	assert.True(t, called)
 }

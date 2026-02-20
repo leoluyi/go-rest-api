@@ -1,21 +1,18 @@
-// Package dbcontext provides DB transaction support for transactions tha span method calls of multiple
+// Package dbcontext provides DB transaction support for transactions that span method calls of multiple
 // repositories and services.
 package dbcontext
 
 import (
 	"context"
+	"net/http"
 
-	dbx "github.com/go-ozzo/ozzo-dbx"
-	routing "github.com/go-ozzo/ozzo-routing/v2"
+	"github.com/jmoiron/sqlx"
 )
 
 // DB represents a DB connection that can be used to run SQL queries.
 type DB struct {
-	db *dbx.DB
+	db *sqlx.DB
 }
-
-// TransactionFunc represents a function that will start a transaction and run the given function.
-type TransactionFunc func(ctx context.Context, f func(ctx context.Context) error) error
 
 type contextKey int
 
@@ -23,42 +20,70 @@ const (
 	txKey contextKey = iota
 )
 
-// New returns a new DB connection that wraps the given dbx.DB instance.
-func New(db *dbx.DB) *DB {
+// New returns a new DB connection that wraps the given sqlx.DB instance.
+func New(db *sqlx.DB) *DB {
 	return &DB{db}
 }
 
-// DB returns the dbx.DB wrapped by this object.
-func (db *DB) DB() *dbx.DB {
+// DB returns the sqlx.DB wrapped by this object.
+func (db *DB) DB() *sqlx.DB {
 	return db.db
 }
 
-// With returns a Builder that can be used to build and execute SQL queries.
-// With will return the transaction if it is found in the given context.
-// Otherwise it will return a DB connection associated with the context.
-func (db *DB) With(ctx context.Context) dbx.Builder {
-	if tx, ok := ctx.Value(txKey).(*dbx.Tx); ok {
+// With returns a sqlx.ExtContext that can be used to run SQL queries.
+// With returns the transaction if one is found in the given context.
+// Otherwise it returns the underlying DB connection.
+func (db *DB) With(ctx context.Context) sqlx.ExtContext {
+	if tx, ok := ctx.Value(txKey).(*sqlx.Tx); ok {
 		return tx
 	}
-	return db.db.WithContext(ctx)
+	return db.db
 }
 
 // Transactional starts a transaction and calls the given function with a context storing the transaction.
-// The transaction associated with the context can be accesse via With().
-func (db *DB) Transactional(ctx context.Context, f func(ctx context.Context) error) error {
-	return db.db.TransactionalContext(ctx, nil, func(tx *dbx.Tx) error {
-		return f(context.WithValue(ctx, txKey, tx))
-	})
+// The transaction associated with the context can be accessed via With().
+// The transaction is committed if the function returns nil, rolled back otherwise.
+func (db *DB) Transactional(ctx context.Context, f func(ctx context.Context) error) (err error) {
+	tx, err := db.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			_ = tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+	err = f(context.WithValue(ctx, txKey, tx))
+	return err
 }
 
-// TransactionHandler returns a middleware that starts a transaction.
-// The transaction started is kept in the context and can be accessed via With().
-func (db *DB) TransactionHandler() routing.Handler {
-	return func(c *routing.Context) error {
-		return db.db.TransactionalContext(c.Request.Context(), nil, func(tx *dbx.Tx) error {
-			ctx := context.WithValue(c.Request.Context(), txKey, tx)
-			c.Request = c.Request.WithContext(ctx)
-			return c.Next()
+// TransactionHandler returns a middleware that wraps each request in a database transaction.
+// The transaction is committed when the handler returns normally, and rolled back on panic.
+// The transaction can be accessed via With() using the request context.
+func (db *DB) TransactionHandler() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tx, err := db.db.BeginTxx(r.Context(), nil)
+			if err != nil {
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+				return
+			}
+			panicked := true
+			defer func() {
+				if panicked {
+					_ = tx.Rollback()
+				} else {
+					_ = tx.Commit()
+				}
+			}()
+			ctx := context.WithValue(r.Context(), txKey, tx)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			panicked = false
 		})
 	}
 }

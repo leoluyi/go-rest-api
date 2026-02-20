@@ -58,6 +58,17 @@ make testdata         # Reset DB and load sample fixtures
 make generate-docs    # Generate Swagger docs via swag
 ```
 
+## Key Dependencies
+
+| Concern | Package |
+|---------|---------|
+| Router | `github.com/go-chi/chi/v5` |
+| JWT middleware | `github.com/go-chi/jwtauth/v5` |
+| JWT signing | `github.com/golang-jwt/jwt/v4` |
+| Database | `github.com/jmoiron/sqlx` + `github.com/lib/pq` |
+| Validation | `github.com/go-playground/validator/v10` |
+| Logging | `go.uber.org/zap` (wrapped by `pkg/log`) |
+
 ## Architecture
 
 Each feature follows a strict three-layer pattern. New features must mirror this structure:
