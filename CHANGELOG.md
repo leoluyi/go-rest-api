@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- Moved `stress-test.sh` to `scripts/stress-test.sh`
+- Added `make stress-test` Makefile target
+
 ## [v2.0.0] - 2026-02-21
 
 ### Added
