@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/qiangxue/go-rest-api/internal/errors"
-	"github.com/qiangxue/go-rest-api/pkg/log"
-	"github.com/qiangxue/go-rest-api/pkg/pagination"
+	"github.com/leoluyi/go-api-template/internal/errors"
+	"github.com/leoluyi/go-api-template/pkg/log"
+	"github.com/leoluyi/go-api-template/pkg/pagination"
 )
 
 type resource struct {

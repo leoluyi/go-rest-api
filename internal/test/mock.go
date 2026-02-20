@@ -3,9 +3,9 @@ package test
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"github.com/qiangxue/go-rest-api/internal/errors"
-	"github.com/qiangxue/go-rest-api/pkg/accesslog"
-	"github.com/qiangxue/go-rest-api/pkg/log"
+	"github.com/leoluyi/go-api-template/internal/errors"
+	"github.com/leoluyi/go-api-template/pkg/accesslog"
+	"github.com/leoluyi/go-api-template/pkg/log"
 )
 
 // MockRouter creates a chi.Router for testing APIs.

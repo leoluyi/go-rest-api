@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/qiangxue/go-rest-api/pkg/log"
+	"github.com/leoluyi/go-api-template/pkg/log"
 	"github.com/stretchr/testify/assert"
 )
 

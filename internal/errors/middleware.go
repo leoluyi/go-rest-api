@@ -8,7 +8,7 @@ import (
 	"runtime/debug"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/qiangxue/go-rest-api/pkg/log"
+	"github.com/leoluyi/go-api-template/pkg/log"
 )
 
 // Handler creates a middleware that handles panics encountered during HTTP request processing.

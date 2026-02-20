@@ -17,15 +17,15 @@ import (
 	_ "github.com/lib/pq"
 	httpSwagger "github.com/swaggo/http-swagger"
 
-	_ "github.com/qiangxue/go-rest-api/docs"
-	"github.com/qiangxue/go-rest-api/internal/album"
-	"github.com/qiangxue/go-rest-api/internal/auth"
-	"github.com/qiangxue/go-rest-api/internal/config"
-	"github.com/qiangxue/go-rest-api/internal/errors"
-	"github.com/qiangxue/go-rest-api/internal/healthcheck"
-	"github.com/qiangxue/go-rest-api/pkg/accesslog"
-	"github.com/qiangxue/go-rest-api/pkg/dbcontext"
-	"github.com/qiangxue/go-rest-api/pkg/log"
+	_ "github.com/leoluyi/go-api-template/docs"
+	"github.com/leoluyi/go-api-template/internal/album"
+	"github.com/leoluyi/go-api-template/internal/auth"
+	"github.com/leoluyi/go-api-template/internal/config"
+	"github.com/leoluyi/go-api-template/internal/errors"
+	"github.com/leoluyi/go-api-template/internal/healthcheck"
+	"github.com/leoluyi/go-api-template/pkg/accesslog"
+	"github.com/leoluyi/go-api-template/pkg/dbcontext"
+	"github.com/leoluyi/go-api-template/pkg/log"
 )
 
 // Version indicates the current version of the application.

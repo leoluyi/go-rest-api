@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/qiangxue/go-rest-api/pkg/log"
+	"github.com/leoluyi/go-api-template/pkg/log"
 )
 
 type responseWriter struct {

@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/jwtauth/v5"
-	"github.com/qiangxue/go-rest-api/internal/entity"
-	"github.com/qiangxue/go-rest-api/internal/errors"
+	"github.com/leoluyi/go-api-template/internal/entity"
+	"github.com/leoluyi/go-api-template/internal/errors"
 )
 
 type contextKey int

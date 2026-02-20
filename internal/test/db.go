@@ -8,9 +8,9 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // initialize postgresql for test
-	"github.com/qiangxue/go-rest-api/internal/config"
-	"github.com/qiangxue/go-rest-api/pkg/dbcontext"
-	"github.com/qiangxue/go-rest-api/pkg/log"
+	"github.com/leoluyi/go-api-template/internal/config"
+	"github.com/leoluyi/go-api-template/pkg/dbcontext"
+	"github.com/leoluyi/go-api-template/pkg/log"
 )
 
 var db *dbcontext.DB

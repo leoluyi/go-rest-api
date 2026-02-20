@@ -1,4 +1,4 @@
-module github.com/qiangxue/go-rest-api
+module github.com/leoluyi/go-api-template
 
 go 1.24.0
 

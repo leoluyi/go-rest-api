@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/qiangxue/go-rest-api/internal/entity"
-	"github.com/qiangxue/go-rest-api/pkg/dbcontext"
-	"github.com/qiangxue/go-rest-api/pkg/log"
+	"github.com/leoluyi/go-api-template/internal/entity"
+	"github.com/leoluyi/go-api-template/pkg/dbcontext"
+	"github.com/leoluyi/go-api-template/pkg/log"
 )
 
 // Repository encapsulates the logic to access albums from the data source.
