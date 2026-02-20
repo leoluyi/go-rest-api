@@ -13,6 +13,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/golang-migrate/migrate/v4"
+	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -23,6 +26,7 @@ import (
 	"github.com/leoluyi/go-api-template/internal/config"
 	"github.com/leoluyi/go-api-template/internal/errors"
 	"github.com/leoluyi/go-api-template/internal/healthcheck"
+	"github.com/leoluyi/go-api-template/migrations"
 	"github.com/leoluyi/go-api-template/pkg/accesslog"
 	"github.com/leoluyi/go-api-template/pkg/dbcontext"
 	"github.com/leoluyi/go-api-template/pkg/log"
@@ -73,6 +77,12 @@ func main() {
 		}
 	}()
 
+	// run database migrations
+	if err := runMigrations(db, logger); err != nil {
+		logger.Errorf("failed to run database migrations: %s", err)
+		os.Exit(-1)
+	}
+
 	// build HTTP server
 	address := fmt.Sprintf(":%v", cfg.ServerPort)
 	hs := &http.Server{
@@ -97,6 +107,28 @@ func main() {
 		logger.Error(err)
 		os.Exit(-1)
 	}
+}
+
+// runMigrations applies all pending database migrations embedded in the binary.
+// It returns nil if there are no pending migrations (migrate.ErrNoChange).
+func runMigrations(db *sqlx.DB, logger log.Logger) error {
+	src, err := iofs.New(migrations.FS, ".")
+	if err != nil {
+		return fmt.Errorf("create migration source: %w", err)
+	}
+	driver, err := migratepg.WithInstance(db.DB, &migratepg.Config{})
+	if err != nil {
+		return fmt.Errorf("create migration driver: %w", err)
+	}
+	m, err := migrate.NewWithInstance("iofs", src, "postgres", driver)
+	if err != nil {
+		return fmt.Errorf("init migrator: %w", err)
+	}
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("apply migrations: %w", err)
+	}
+	logger.Info("database migrations applied")
+	return nil
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.

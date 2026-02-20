@@ -1,37 +1,29 @@
-FROM golang:alpine AS build
-RUN apk update && \
-    apk add curl \
-            git \
-            bash \
-            make \
-            ca-certificates && \
-    rm -rf /var/cache/apk/*
+FROM golang:1.24-alpine AS build
 
-# install migrate which will be used by entrypoint.sh to perform DB migration
-ARG MIGRATE_VERSION=4.15.2
-ADD https://github.com/golang-migrate/migrate/releases/download/v${MIGRATE_VERSION}/migrate.linux-amd64.tar.gz /tmp
-RUN tar -xzf /tmp/migrate.linux-amd64.tar.gz -C /usr/local/bin && mv /usr/local/bin/migrate* /usr/local/bin/migrate
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
-# copy module files first so that they don't need to be downloaded again if no change
-COPY go.* ./
-RUN go mod download && \
-    go mod verify
+# cache module downloads separately from source changes
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
 
-# copy source files and build the binary
 COPY . .
-RUN make build
+
+ARG VERSION=dev
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.Version=${VERSION}" -a -o server ./cmd/server
 
 
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates bash
-RUN mkdir -p /var/log/app
+FROM alpine:3.21
+
+RUN apk --no-cache add ca-certificates && \
+    addgroup -S app && adduser -S app -G app
+
 WORKDIR /app/
-COPY --from=build /usr/local/bin/migrate /usr/local/bin
-COPY --from=build /app/migrations ./migrations/
 COPY --from=build /app/server .
-COPY --from=build /app/cmd/server/entrypoint.sh .
 COPY --from=build /app/config/*.yml ./config/
-RUN ls -la
-CMD ["./entrypoint.sh"]
+RUN chown -R app:app /app
+
+USER app
+
+CMD ["./server"]

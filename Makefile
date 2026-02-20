@@ -80,7 +80,7 @@ db-start: ## start the database server
 	  -e POSTGRES_PASSWORD=postgres \
 	  -p 5432:5432 \
 	  -v $(shell pwd)/testdata:/testdata \
-	  postgres:14.10
+	  postgres:17-alpine
 
 .PHONY: db-stop
 db-stop: ## stop the database server

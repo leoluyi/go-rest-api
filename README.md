@@ -46,7 +46,19 @@ hs.Shutdown(ctx)
 
 ### Staged Dockerfile
 
-`cmd/server/Dockerfile` uses a two-stage build. The first stage compiles the binary in a full Go image; the second stage copies only the necessary artifacts into a minimal Alpine image, keeping the production image small and free of build tooling.
+`cmd/server/Dockerfile` uses a two-stage build. The first stage compiles the binary in a full Go image; the second stage copies only the binary and config files into a minimal Alpine image. The runtime image runs as a non-root user (`app`) and contains no shell, no package manager, and no build tooling.
+
+### Embedded database migrations
+
+Migration SQL files are embedded directly into the binary at compile time using `//go:embed`:
+
+```go
+// migrations/migrations.go
+//go:embed *.sql
+var FS embed.FS
+```
+
+On startup, `main.go` runs all pending migrations via the `golang-migrate/migrate/v4` library before the HTTP server begins accepting requests. `migrate.ErrNoChange` (no pending migrations) is treated as success. This eliminates the need for a separate `migrate` CLI binary, a shell script entrypoint, or a shell in the runtime image.
 
 ### Custom middlewares
 
@@ -230,8 +242,12 @@ This is especially useful if an API handler needs to put method calls of multipl
 ### Updating Database Schema
 
 The starter kit uses [database migration](https://en.wikipedia.org/wiki/Schema_migration) to manage the changes of the
-database schema over the whole project development phase. The following commands are commonly used with regard to database
-schema changes:
+database schema over the whole project development phase.
+
+Migrations are embedded into the server binary at compile time and run automatically on startup. There is no separate
+migration step required when deploying; the server applies any pending migrations before accepting requests.
+
+The following commands are commonly used during local development:
 
 ```shell
 # Execute new migrations made by you or other team members.
@@ -281,23 +297,30 @@ via `make run`.
 
 Do not keep secrets in the configuration files. Provide them via environment variables instead. For example,
 you should provide `Config.DSN` using the `APP_DSN` environment variable. Secrets can be populated from a secret
-storage (e.g. HashiCorp Vault) into environment variables in a bootstrap script (e.g. `cmd/server/entryscript.sh`).
+storage (e.g. HashiCorp Vault) into environment variables before the process starts.
 
 ## Deployment
 
-The application can be run as a docker container. You can use `make build-docker` to build the application
-into a docker image. The docker container starts with the `cmd/server/entryscript.sh` script which reads
-the `APP_ENV` environment variable to determine which configuration file to use. For example,
-if `APP_ENV` is `qa`, the application will be started with the `config/qa.yml` configuration file.
+The application can be run as a Docker container. Use `make build-docker` to build the image:
 
-You can also run `make build` to build an executable binary named `server`. Then start the API server using the following
-command,
+```shell
+make build-docker
+```
+
+The container runs the server binary directly. Database migrations are applied automatically on startup before
+the HTTP server begins accepting requests. Configure the application via `APP_`-prefixed environment variables:
+
+```shell
+docker run -e APP_DSN="postgres://..." -e APP_JWT_SIGNING_KEY="..." -p 8080:8080 server:latest
+```
+
+You can also run `make build` to build an executable binary named `server` and start it directly:
 
 ```shell
 ./server -config=./config/prod.yml
 ```
 
-Alternatively, use `docker-compose` to run the full stack (API server + PostgreSQL):
+To run the full stack (API server + PostgreSQL) locally:
 
 ```shell
 docker-compose up

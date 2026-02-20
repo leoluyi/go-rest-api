@@ -1,0 +1,13 @@
+.git
+vendor
+testdata
+scripts
+docs
+coverage*.out
+coverage.out
+.pid
+server
+tmp
+*.md
+.gitignore
+.env*

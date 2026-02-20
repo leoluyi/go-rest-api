@@ -6,8 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v2.2.0] - 2026-02-21
+
+### Added
+- `migrations/migrations.go` embeds all `*.sql` migration files into the binary via `//go:embed`, making the binary fully self-contained
+- Database migrations now run automatically at startup via `golang-migrate/migrate/v4` library (iofs source + postgres driver), eliminating the need for the `migrate` CLI binary or `entrypoint.sh`
+
 ### Changed
-- Added Swagger API documentation to the best practices section in README
+- Removed `cmd/server/entrypoint.sh` from Docker image — `CMD` is now `["./server"]` directly
+- Removed `migrate` binary download from the Dockerfile build stage
+- Removed `bash` from the runtime Alpine image (no longer needed without `entrypoint.sh`)
+- Removed `/var/log/app` directory creation (was only used by a commented-out log redirect in `entrypoint.sh`)
+- Removed `APP_ENV` from `docker-compose.yml` (was only consumed by `entrypoint.sh`)
+- Removed log volume mount from `docker-compose.yml` (`/tmp/app:/var/log/app`)
+- Added `.dockerignore` to exclude `.git`, `vendor`, `testdata`, `docs`, `tmp`, and other non-essential files from the build context
 
 ## [v2.1.0] - 2026-02-21
 
@@ -76,7 +88,8 @@ Initial release (upstream: [qiangxue/go-rest-api](https://github.com/qiangxue/go
 - Graceful shutdown
 - Full test coverage with mock-based unit tests
 
-[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.2.0...HEAD
+[v2.2.0]: https://github.com/leoluyi/go-api-template/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/leoluyi/go-api-template/compare/v2.0.0...v2.1.0
 [v2.0.0]: https://github.com/leoluyi/go-api-template/compare/v1.0.1...v2.0.0
 [v1.0.1]: https://github.com/leoluyi/go-api-template/compare/v1.0.0...v1.0.1
