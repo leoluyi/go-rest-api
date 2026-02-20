@@ -31,6 +31,9 @@ make build-docker     # Build Docker image
 make test             # Run all tests with coverage (outputs coverage-all.out)
 make test-cover       # Run tests and open HTML coverage report
 go test ./internal/album/... -run TestAlbumAPI  # Run a single test
+
+# Run only tests that don't require PostgreSQL
+go test $(go list ./... | grep -v 'pkg/dbcontext\|internal/album$\|internal/test$\|cmd/server\|docs')
 ```
 
 ### Linting & Formatting
