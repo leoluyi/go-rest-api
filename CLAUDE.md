@@ -46,11 +46,7 @@ make fmt              # gofmt
 ### Database
 
 ```bash
-make db-start         # Start PostgreSQL container (NOTE: the Makefile mounts
-                      # testdata/postgres as the data dir; if that volume contains
-                      # stale data the container exits immediately. If db-start fails,
-                      # run: docker run -d --name postgres -e POSTGRES_DB=go_restful \
-                      #   -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:14.10)
+make db-start         # Start PostgreSQL container
 make db-stop          # Stop PostgreSQL container
 make migrate          # Run pending migrations
 make migrate-new      # Create new migration file
@@ -116,6 +112,16 @@ All config fields can be overridden with `APP_`-prefixed environment variables (
 Routes are registered in `cmd/server/main.go`. The chi router is used with middleware stacked in this order: access log → CORS → error handler → JWT auth (on protected routes).
 
 Protected routes under `/v1/` require a `Bearer` JWT token. The JWT middleware is in `internal/auth/middleware.go`.
+
+## Known Issues
+
+**`make db-start` exits immediately**: The Makefile mounts `testdata/postgres` as the PostgreSQL data directory. If that directory contains stale data from a previous run, the container exits on startup. Work around it by running Docker directly:
+
+```bash
+docker run -d --name postgres \
+  -e POSTGRES_DB=go_restful -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 postgres:14.10
+```
 
 ## Testing Patterns
 
