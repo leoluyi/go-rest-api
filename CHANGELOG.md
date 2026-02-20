@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v2.0.0] - 2026-02-21
+
 ### Added
 - Swagger API documentation via `swaggo/swag` and `swaggo/http-swagger`
 - Swagger UI served at `GET /v1/swagger/*`
@@ -50,6 +52,7 @@ Initial release (upstream: [qiangxue/go-rest-api](https://github.com/qiangxue/go
 - Graceful shutdown
 - Full test coverage with mock-based unit tests
 
-[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.0.0...HEAD
+[v2.0.0]: https://github.com/leoluyi/go-api-template/compare/v1.0.1...v2.0.0
 [v1.0.1]: https://github.com/leoluyi/go-api-template/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/leoluyi/go-api-template/releases/tag/v1.0.0
