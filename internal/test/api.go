@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	routing "github.com/go-ozzo/ozzo-routing/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,16 +22,16 @@ type APITestCase struct {
 }
 
 // Endpoint tests an HTTP endpoint using the given APITestCase spec.
-func Endpoint(t *testing.T, router *routing.Router, tc APITestCase) {
+func Endpoint(t *testing.T, router http.Handler, tc APITestCase) {
 	t.Run(tc.Name, func(t *testing.T) {
 		req, _ := http.NewRequest(tc.Method, tc.URL, bytes.NewBufferString(tc.Body))
 		if tc.Header != nil {
 			req.Header = tc.Header
 		}
-		res := httptest.NewRecorder()
 		if req.Header.Get("Content-Type") == "" {
 			req.Header.Set("Content-Type", "application/json")
 		}
+		res := httptest.NewRecorder()
 		router.ServeHTTP(res, req)
 		assert.Equal(t, tc.WantStatus, res.Code, "status mismatch")
 		if tc.WantResponse != "" {

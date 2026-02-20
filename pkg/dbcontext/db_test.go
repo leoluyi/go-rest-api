@@ -8,16 +8,15 @@ import (
 	"os"
 	"testing"
 
-	dbx "github.com/go-ozzo/ozzo-dbx"
-	routing "github.com/go-ozzo/ozzo-routing/v2"
-	_ "github.com/lib/pq" // initialize posgresql for test
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq" // initialize postgresql for test
 	"github.com/stretchr/testify/assert"
 )
 
 const DSN = "postgres://127.0.0.1/go_restful?sslmode=disable&user=postgres&password=postgres"
 
 func TestNew(t *testing.T) {
-	runDBTest(t, func(db *dbx.DB) {
+	runDBTest(t, func(db *sqlx.DB) {
 		dbc := New(db)
 		assert.NotNil(t, dbc)
 		assert.Equal(t, db, dbc.DB())
@@ -25,15 +24,15 @@ func TestNew(t *testing.T) {
 }
 
 func TestDB_Transactional(t *testing.T) {
-	runDBTest(t, func(db *dbx.DB) {
+	runDBTest(t, func(db *sqlx.DB) {
 		assert.Zero(t, runCountQuery(t, db))
 		dbc := New(db)
 
 		// successful transaction
 		err := dbc.Transactional(context.Background(), func(ctx context.Context) error {
-			_, err := dbc.With(ctx).Insert("dbcontexttest", dbx.Params{"id": "1", "name": "name1"}).Execute()
+			_, err := dbc.With(ctx).ExecContext(ctx, "INSERT INTO dbcontexttest (id, name) VALUES ($1, $2)", "1", "name1")
 			assert.Nil(t, err)
-			_, err = dbc.With(ctx).Insert("dbcontexttest", dbx.Params{"id": "2", "name": "name2"}).Execute()
+			_, err = dbc.With(ctx).ExecContext(ctx, "INSERT INTO dbcontexttest (id, name) VALUES ($1, $2)", "2", "name2")
 			assert.Nil(t, err)
 			return nil
 		})
@@ -42,20 +41,20 @@ func TestDB_Transactional(t *testing.T) {
 
 		// failed transaction
 		err = dbc.Transactional(context.Background(), func(ctx context.Context) error {
-			_, err := dbc.With(ctx).Insert("dbcontexttest", dbx.Params{"id": "3", "name": "name1"}).Execute()
+			_, err := dbc.With(ctx).ExecContext(ctx, "INSERT INTO dbcontexttest (id, name) VALUES ($1, $2)", "3", "name3")
 			assert.Nil(t, err)
-			_, err = dbc.With(ctx).Insert("dbcontexttest", dbx.Params{"id": "4", "name": "name2"}).Execute()
+			_, err = dbc.With(ctx).ExecContext(ctx, "INSERT INTO dbcontexttest (id, name) VALUES ($1, $2)", "4", "name4")
 			assert.Nil(t, err)
 			return sql.ErrNoRows
 		})
 		assert.Equal(t, sql.ErrNoRows, err)
 		assert.Equal(t, 2, runCountQuery(t, db))
 
-		// failed transaction, but queries made outside of the transaction
+		// queries made outside of the transaction are not rolled back
 		err = dbc.Transactional(context.Background(), func(ctx context.Context) error {
-			_, err := dbc.With(context.Background()).Insert("dbcontexttest", dbx.Params{"id": "3", "name": "name1"}).Execute()
+			_, err := dbc.With(context.Background()).ExecContext(context.Background(), "INSERT INTO dbcontexttest (id, name) VALUES ($1, $2)", "3", "name3")
 			assert.Nil(t, err)
-			_, err = dbc.With(context.Background()).Insert("dbcontexttest", dbx.Params{"id": "4", "name": "name2"}).Execute()
+			_, err = dbc.With(context.Background()).ExecContext(context.Background(), "INSERT INTO dbcontexttest (id, name) VALUES ($1, $2)", "4", "name4")
 			assert.Nil(t, err)
 			return sql.ErrNoRows
 		})
@@ -65,51 +64,49 @@ func TestDB_Transactional(t *testing.T) {
 }
 
 func TestDB_TransactionHandler(t *testing.T) {
-	runDBTest(t, func(db *dbx.DB) {
+	runDBTest(t, func(db *sqlx.DB) {
 		assert.Zero(t, runCountQuery(t, db))
 		dbc := New(db)
-		txHandler := dbc.TransactionHandler()
 
 		// successful transaction
 		{
+			req := httptest.NewRequest("GET", "http://127.0.0.1/users", nil)
 			res := httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "http://127.0.0.1/users", nil)
-			err := routing.NewContext(res, req, txHandler, func(c *routing.Context) error {
-				ctx := c.Request.Context()
-				_, err := dbc.With(ctx).Insert("dbcontexttest", dbx.Params{"id": "1", "name": "name1"}).Execute()
+			handler := dbc.TransactionHandler()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				ctx := r.Context()
+				_, err := dbc.With(ctx).ExecContext(ctx, "INSERT INTO dbcontexttest (id, name) VALUES ($1, $2)", "1", "name1")
 				assert.Nil(t, err)
-				_, err = dbc.With(ctx).Insert("dbcontexttest", dbx.Params{"id": "2", "name": "name2"}).Execute()
+				_, err = dbc.With(ctx).ExecContext(ctx, "INSERT INTO dbcontexttest (id, name) VALUES ($1, $2)", "2", "name2")
 				assert.Nil(t, err)
-				return nil
-			}).Next()
-			assert.Nil(t, err)
+			}))
+			handler.ServeHTTP(res, req)
 			assert.Equal(t, 2, runCountQuery(t, db))
 		}
 
-		// failed transaction
+		// failed transaction (panic causes rollback)
 		{
+			req := httptest.NewRequest("GET", "http://127.0.0.1/users", nil)
 			res := httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "http://127.0.0.1/users", nil)
-			err := routing.NewContext(res, req, txHandler, func(c *routing.Context) error {
-				ctx := c.Request.Context()
-				_, err := dbc.With(ctx).Insert("dbcontexttest", dbx.Params{"id": "3", "name": "name1"}).Execute()
+			handler := dbc.TransactionHandler()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				ctx := r.Context()
+				_, err := dbc.With(ctx).ExecContext(ctx, "INSERT INTO dbcontexttest (id, name) VALUES ($1, $2)", "3", "name3")
 				assert.Nil(t, err)
-				_, err = dbc.With(ctx).Insert("dbcontexttest", dbx.Params{"id": "4", "name": "name2"}).Execute()
+				_, err = dbc.With(ctx).ExecContext(ctx, "INSERT INTO dbcontexttest (id, name) VALUES ($1, $2)", "4", "name4")
 				assert.Nil(t, err)
-				return sql.ErrNoRows
-			}).Next()
-			assert.Equal(t, err, sql.ErrNoRows)
+				panic("simulate error")
+			}))
+			assert.Panics(t, func() { handler.ServeHTTP(res, req) })
 			assert.Equal(t, 2, runCountQuery(t, db))
 		}
 	})
 }
 
-func runDBTest(t *testing.T, f func(db *dbx.DB)) {
+func runDBTest(t *testing.T, f func(db *sqlx.DB)) {
 	dsn, ok := os.LookupEnv("APP_DSN")
 	if !ok {
 		dsn = DSN
 	}
-	db, err := dbx.MustOpen("postgres", dsn)
+	db, err := sqlx.Open("postgres", dsn)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -123,9 +120,8 @@ func runDBTest(t *testing.T, f func(db *dbx.DB)) {
 		"TRUNCATE dbcontexttest",
 	}
 	for _, s := range sqls {
-		_, err = db.NewQuery(s).Execute()
-		if err != nil {
-			t.Error(err, " with SQL: ", s)
+		if _, err = db.Exec(s); err != nil {
+			t.Errorf("%v with SQL: %s", err, s)
 			t.FailNow()
 		}
 	}
@@ -133,10 +129,9 @@ func runDBTest(t *testing.T, f func(db *dbx.DB)) {
 	f(db)
 }
 
-func runCountQuery(t *testing.T, db *dbx.DB) int {
+func runCountQuery(t *testing.T, db *sqlx.DB) int {
 	var count int
-	err := db.NewQuery("SELECT COUNT(*) FROM dbcontexttest").Row(&count)
+	err := db.Get(&count, "SELECT COUNT(*) FROM dbcontexttest")
 	assert.Nil(t, err)
 	return count
-
 }

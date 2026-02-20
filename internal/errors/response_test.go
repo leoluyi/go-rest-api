@@ -1,11 +1,10 @@
 package errors
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,10 +63,17 @@ func TestBadRequest(t *testing.T) {
 }
 
 func TestInvalidInput(t *testing.T) {
-	err := InvalidInput(validation.Errors{
-		"xyz": fmt.Errorf("2"),
-		"abc": fmt.Errorf("1"),
-	})
-	assert.Equal(t, http.StatusBadRequest, err.Status)
-	assert.Equal(t, []invalidField{{"abc", "1"}, {"xyz", "2"}}, err.Details)
+	v := validator.New()
+	type testStruct struct {
+		Name string `validate:"required"`
+	}
+	err := v.Struct(testStruct{})
+	var errs validator.ValidationErrors
+	assert.ErrorAs(t, err, &errs)
+	res := InvalidInput(errs)
+	assert.Equal(t, http.StatusBadRequest, res.Status)
+	details, ok := res.Details.([]invalidField)
+	assert.True(t, ok)
+	assert.Len(t, details, 1)
+	assert.Equal(t, "Name", details[0].Field)
 }

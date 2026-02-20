@@ -4,10 +4,12 @@ import (
 	"context"
 	"time"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-playground/validator/v10"
 	"github.com/qiangxue/go-rest-api/internal/entity"
 	"github.com/qiangxue/go-rest-api/pkg/log"
 )
+
+var validate = validator.New()
 
 // Service encapsulates usecase logic for albums.
 type Service interface {
@@ -26,26 +28,22 @@ type Album struct {
 
 // CreateAlbumRequest represents an album creation request.
 type CreateAlbumRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required,max=128"`
 }
 
 // Validate validates the CreateAlbumRequest fields.
 func (m CreateAlbumRequest) Validate() error {
-	return validation.ValidateStruct(&m,
-		validation.Field(&m.Name, validation.Required, validation.Length(0, 128)),
-	)
+	return validate.Struct(m)
 }
 
 // UpdateAlbumRequest represents an album update request.
 type UpdateAlbumRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required,max=128"`
 }
 
-// Validate validates the CreateAlbumRequest fields.
+// Validate validates the UpdateAlbumRequest fields.
 func (m UpdateAlbumRequest) Validate() error {
-	return validation.ValidateStruct(&m,
-		validation.Field(&m.Name, validation.Required, validation.Length(0, 128)),
-	)
+	return validate.Struct(m)
 }
 
 type service struct {

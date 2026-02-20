@@ -2,17 +2,18 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	dbx "github.com/go-ozzo/ozzo-dbx"
-	routing "github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/go-ozzo/ozzo-routing/v2/content"
-	"github.com/go-ozzo/ozzo-routing/v2/cors"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	httpSwagger "github.com/swaggo/http-swagger"
 
@@ -32,7 +33,6 @@ var Version = "1.0.0"
 
 var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
 
-// GetRouter configures a chi router and starts the http server
 // @title Swagger Example API
 // @version 1.0
 // @description This is a sample server Petstore server.
@@ -60,13 +60,11 @@ func main() {
 	}
 
 	// connect to the database
-	db, err := dbx.MustOpen("postgres", cfg.DSN)
+	db, err := sqlx.Open("postgres", cfg.DSN)
 	if err != nil {
 		logger.Error(err)
 		os.Exit(-1)
 	}
-	db.QueryLogFunc = logDBQuery(logger)
-	db.ExecLogFunc = logDBExec(logger)
 	defer func() {
 		if err := db.Close(); err != nil {
 			logger.Error(err)
@@ -81,7 +79,17 @@ func main() {
 	}
 
 	// start the HTTP server with graceful shutdown
-	go routing.GracefulShutdown(hs, 10*time.Second, logger.Infof)
+	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+		<-quit
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := hs.Shutdown(ctx); err != nil {
+			logger.Error(err)
+		}
+	}()
+
 	logger.Infof("server %v is running at %v", Version, address)
 	if err := hs.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Error(err)
@@ -91,53 +99,24 @@ func main() {
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
 func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.Handler {
-	router := routing.New()
+	router := chi.NewRouter()
 
 	router.Use(
 		accesslog.Handler(logger),
 		errors.Handler(logger),
-		content.TypeNegotiator(content.JSON),
-		cors.Handler(cors.AllowAll),
+		middleware.AllowContentType("application/json"),
+		cors.AllowAll().Handler,
 	)
 
 	healthcheck.RegisterHandlers(router, Version)
 
-	rg := router.Group("/v1")
-	rg.Get("/swagger*", routing.HTTPHandlerFunc(httpSwagger.Handler()))
+	router.Route("/v1", func(r chi.Router) {
+		r.Get("/swagger*", httpSwagger.Handler())
 
-	authHandler := auth.Handler(cfg.JWTSigningKey)
-
-	album.RegisterHandlers(rg.Group(""),
-		album.NewService(album.NewRepository(db, logger), logger),
-		authHandler, logger,
-	)
-
-	auth.RegisterHandlers(rg.Group(""),
-		auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, logger),
-		logger,
-	)
+		authHandler := auth.Handler(cfg.JWTSigningKey)
+		auth.RegisterHandlers(r, auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, logger), logger)
+		album.RegisterHandlers(r, album.NewService(album.NewRepository(db, logger), logger), authHandler, logger)
+	})
 
 	return router
-}
-
-// logDBQuery returns a logging function that can be used to log SQL queries.
-func logDBQuery(logger log.Logger) dbx.QueryLogFunc {
-	return func(ctx context.Context, t time.Duration, sql string, rows *sql.Rows, err error) {
-		if err == nil {
-			logger.With(ctx, "duration", t.Milliseconds(), "sql", sql).Info("DB query successful")
-		} else {
-			logger.With(ctx, "sql", sql).Errorf("DB query error: %v", err)
-		}
-	}
-}
-
-// logDBExec returns a logging function that can be used to log SQL executions.
-func logDBExec(logger log.Logger) dbx.ExecLogFunc {
-	return func(ctx context.Context, t time.Duration, sql string, result sql.Result, err error) {
-		if err == nil {
-			logger.With(ctx, "duration", t.Milliseconds(), "sql", sql).Info("DB execution successful")
-		} else {
-			logger.With(ctx, "sql", sql).Errorf("DB execution error: %v", err)
-		}
-	}
 }

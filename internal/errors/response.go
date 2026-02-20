@@ -1,10 +1,10 @@
 package errors
 
 import (
+	"encoding/json"
 	"net/http"
-	"sort"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-playground/validator/v10"
 )
 
 // ErrorResponse is the response that represents an error.
@@ -19,7 +19,7 @@ func (e ErrorResponse) Error() string {
 	return e.Message
 }
 
-// StatusCode is required by routing.HTTPError interface.
+// StatusCode returns the HTTP status code.
 func (e ErrorResponse) StatusCode() int {
 	return e.Status
 }
@@ -85,23 +85,30 @@ type invalidField struct {
 }
 
 // InvalidInput creates a new error response representing a data validation error (HTTP 400).
-func InvalidInput(errs validation.Errors) ErrorResponse {
+func InvalidInput(errs validator.ValidationErrors) ErrorResponse {
 	var details []invalidField
-	var fields []string
-	for field := range errs {
-		fields = append(fields, field)
-	}
-	sort.Strings(fields)
-	for _, field := range fields {
+	for _, e := range errs {
 		details = append(details, invalidField{
-			Field: field,
-			Error: errs[field].Error(),
+			Field: e.Field(),
+			Error: e.Tag(),
 		})
 	}
-
 	return ErrorResponse{
 		Status:  http.StatusBadRequest,
 		Message: "There is some problem with the data you submitted.",
 		Details: details,
 	}
+}
+
+// RespondJSON writes a JSON-encoded response with the given status code.
+func RespondJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(data)
+}
+
+// RespondWithError writes a JSON error response derived from the given error.
+func RespondWithError(w http.ResponseWriter, err error) {
+	res := buildErrorResponse(err)
+	RespondJSON(w, res.Status, res)
 }

@@ -22,12 +22,12 @@ func (m mockService) Login(ctx context.Context, username, password string) (stri
 func TestAPI(t *testing.T) {
 	logger, _ := log.NewForTest()
 	router := test.MockRouter(logger)
-	RegisterHandlers(router.Group(""), mockService{}, logger)
+	RegisterHandlers(router, mockService{}, logger)
 
 	tests := []test.APITestCase{
-		{"success", "POST", "/login", `{"username":"test","password":"pass"}`, nil, http.StatusOK, `{"token":"token-100"}`},
-		{"bad credential", "POST", "/login", `{"username":"test","password":"wrong pass"}`, nil, http.StatusUnauthorized, ""},
-		{"bad json", "POST", "/login", `"username":"test","password":"wrong pass"}`, nil, http.StatusBadRequest, ""},
+		{Name: "success", Method: "POST", URL: "/login", Body: `{"username":"test","password":"pass"}`, WantStatus: http.StatusOK, WantResponse: `{"token":"token-100"}`},
+		{Name: "bad credential", Method: "POST", URL: "/login", Body: `{"username":"test","password":"wrong pass"}`, WantStatus: http.StatusUnauthorized},
+		{Name: "bad json", Method: "POST", URL: "/login", Body: `"username":"test","password":"wrong pass"}`, WantStatus: http.StatusBadRequest},
 	}
 	for _, tc := range tests {
 		test.Endpoint(t, router, tc)

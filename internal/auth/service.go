@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/qiangxue/go-rest-api/internal/entity"
 	"github.com/qiangxue/go-rest-api/internal/errors"
 	"github.com/qiangxue/go-rest-api/pkg/log"
@@ -12,7 +12,7 @@ import (
 
 // Service encapsulates the authentication logic.
 type Service interface {
-	// authenticate authenticates a user using username and password.
+	// Login authenticates a user using username and password.
 	// It returns a JWT token if authentication succeeds. Otherwise, an error is returned.
 	Login(ctx context.Context, username, password string) (string, error)
 }
@@ -50,7 +50,7 @@ func (s service) Login(ctx context.Context, username, password string) (string, 
 func (s service) authenticate(ctx context.Context, username, password string) Identity {
 	logger := s.logger.With(ctx, "user", username)
 
-	// TODO: the following authentication logic is only for demo purpose
+	// the following authentication logic is only for demo purpose
 	if username == "demo" && password == "pass" {
 		logger.Infof("authentication successful")
 		return entity.User{ID: "100", Name: "demo"}
