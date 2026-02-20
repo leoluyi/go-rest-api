@@ -21,8 +21,9 @@ var tokenAuth *jwtauth.JWTAuth
 func Handler(JWTSigningKey string) func(http.Handler) http.Handler {
 	tokenAuth = jwtauth.New("HS256", []byte(JWTSigningKey), nil)
 	verifier := jwtauth.Verifier(tokenAuth)
+	authenticator := jwtauth.Authenticator(tokenAuth)
 	return func(next http.Handler) http.Handler {
-		return verifier(jwtauth.Authenticator(next))
+		return verifier(authenticator(next))
 	}
 }
 

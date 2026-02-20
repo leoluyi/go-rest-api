@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v2.6.0] - 2026-02-21
+
+### Changed
+- Upgraded all Go dependencies to latest versions
+- `go-chi/chi/v5` v5.0.7 → v5.2.5
+- `go-chi/jwtauth/v5` v5.0.2 → v5.3.3
+- `go-chi/cors` v1.2.1 → v1.2.2
+- `lib/pq` v1.10.9 → v1.11.2
+- `go.uber.org/zap` v1.23.0 → v1.27.1
+- `stretchr/testify` v1.10.0 → v1.11.1
+- `golang-migrate/migrate/v4` moved from indirect to direct dependency
+
+### Fixed
+- Updated `internal/auth/middleware.go` for breaking API change in `go-chi/jwtauth/v5` v5.3.x: `Authenticator` now takes `*JWTAuth` instead of `http.Handler`
+
 ## [v2.5.0] - 2026-02-21
 
 ### Changed
@@ -112,7 +127,8 @@ Initial release (upstream: [qiangxue/go-rest-api](https://github.com/qiangxue/go
 - Graceful shutdown
 - Full test coverage with mock-based unit tests
 
-[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.6.0...HEAD
+[v2.6.0]: https://github.com/leoluyi/go-api-template/compare/v2.5.0...v2.6.0
 [v2.5.0]: https://github.com/leoluyi/go-api-template/compare/v2.4.0...v2.5.0
 [v2.4.0]: https://github.com/leoluyi/go-api-template/compare/v2.3.0...v2.4.0
 [v2.3.0]: https://github.com/leoluyi/go-api-template/compare/v2.2.0...v2.3.0
