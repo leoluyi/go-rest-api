@@ -19,6 +19,45 @@ The kit provides the following features right out of the box:
 - Full test coverage
 - Live reloading during development
 
+## Best Practices
+
+### Log version on startup
+
+The server version is injected into the root logger context at startup, so every log line carries it automatically.
+On `ListenAndServe`, the version and bound address are logged explicitly:
+
+```go
+logger := log.New().With(ctx, "version", Version)
+// ...
+logger.Infof("server %v is running at %v", Version, address)
+```
+
+### Graceful exit
+
+The server listens for `SIGINT` and `SIGTERM` and gives in-flight requests up to 10 seconds to complete before shutting down:
+
+```go
+signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+<-quit
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+hs.Shutdown(ctx)
+```
+
+### Staged Dockerfile
+
+`cmd/server/Dockerfile` uses a two-stage build. The first stage compiles the binary in a full Go image; the second stage copies only the necessary artifacts into a minimal Alpine image, keeping the production image small and free of build tooling.
+
+### Custom middlewares
+
+Three custom middlewares are wired into the router in `cmd/server/main.go`:
+
+| Middleware | Location | Purpose |
+|------------|----------|---------|
+| Access log | `pkg/accesslog` | Logs method, path, status, duration, and bytes for every request |
+| Error handler | `internal/errors` | Recovers from panics and maps errors to structured JSON responses |
+| JWT auth | `internal/auth` | Verifies and authenticates Bearer tokens on protected routes |
+
 The kit uses the following Go packages:
 
 | Concern | Package |
