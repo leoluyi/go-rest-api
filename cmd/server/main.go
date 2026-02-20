@@ -40,7 +40,7 @@ var Version = "dev"
 var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
 
 // @title           Go API Template
-// @version         1.0
+// @version         2.7.0
 // @description     RESTful API starter kit built with Go, chi, and PostgreSQL.
 
 // @contact.name    Issues

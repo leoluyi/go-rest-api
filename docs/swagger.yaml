@@ -69,7 +69,7 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   title: Go API Template
-  version: "1.0"
+  version: "2.7.0"
 paths:
   /albums:
     get:
