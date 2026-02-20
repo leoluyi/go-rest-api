@@ -20,7 +20,7 @@ import (
 	_ "github.com/lib/pq"
 	httpSwagger "github.com/swaggo/http-swagger"
 
-	_ "github.com/leoluyi/go-api-template/docs"
+	"github.com/leoluyi/go-api-template/docs"
 	"github.com/leoluyi/go-api-template/internal/album"
 	"github.com/leoluyi/go-api-template/internal/auth"
 	"github.com/leoluyi/go-api-template/internal/config"
@@ -33,8 +33,9 @@ import (
 	"github.com/leoluyi/go-api-template/pkg/metrics"
 )
 
-// Version indicates the current version of the application.
-var Version = "1.0.0"
+// Version is set at build time via -ldflags "-X main.Version=$(git describe --tags)".
+// Falls back to "dev" when built without the Makefile (e.g. go run ./cmd/server).
+var Version = "dev"
 
 var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
 
@@ -56,6 +57,8 @@ var flagConfig = flag.String("config", "./config/local.yml", "path to the config
 // @name            Authorization
 func main() {
 	flag.Parse()
+	docs.SwaggerInfo.Version = Version
+
 	// create root logger tagged with server version
 	logger := log.New().With(context.TODO(), "version", Version)
 
@@ -91,7 +94,7 @@ func main() {
 	address := fmt.Sprintf(":%v", cfg.ServerPort)
 	hs := &http.Server{
 		Addr:    address,
-		Handler: buildHandler(logger, db, dbcontext.New(db), cfg),
+		Handler: buildHandler(logger, db, dbcontext.New(db), cfg, docs.SwaggerInfo.BasePath),
 	}
 
 	// start the HTTP server with graceful shutdown
@@ -136,7 +139,8 @@ func runMigrations(db *sqlx.DB, logger log.Logger) error {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(logger log.Logger, rawDB *sqlx.DB, db *dbcontext.DB, cfg *config.Config) http.Handler {
+// basePath is the API route prefix (e.g. "/v1"), sourced from docs.SwaggerInfo.BasePath.
+func buildHandler(logger log.Logger, rawDB *sqlx.DB, db *dbcontext.DB, cfg *config.Config, basePath string) http.Handler {
 	router := chi.NewRouter()
 
 	router.Use(
@@ -155,7 +159,7 @@ func buildHandler(logger log.Logger, rawDB *sqlx.DB, db *dbcontext.DB, cfg *conf
 	healthcheck.RegisterHandlers(router, Version, rawDB)
 	router.Method(http.MethodGet, "/metrics", metrics.Handler())
 
-	router.Route("/v1", func(r chi.Router) {
+	router.Route(basePath, func(r chi.Router) {
 		r.Get("/swagger/*", httpSwagger.Handler())
 
 		authHandler := auth.Handler(cfg.JWTSigningKey)

@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 MODULE = $(shell go list -m)
-VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || echo "1.0.0")
+VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || echo "dev")
 PACKAGES := $(shell go list ./... | grep -v /vendor/)
 LDFLAGS := -ldflags "-X main.Version=${VERSION}"
 

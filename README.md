@@ -35,6 +35,15 @@ logger := log.New().With(ctx, "version", Version)
 logger.Infof("server %v is running at %v", Version, address)
 ```
 
+`Version` defaults to `"dev"` in source. When built via `make build` or run via `make run`, the Makefile injects the real version from the latest git tag at compile time:
+
+```makefile
+VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2>/dev/null || echo "dev")
+LDFLAGS := -ldflags "-X main.Version=${VERSION}"
+```
+
+Tag a release with `git tag v2.8.0` and `make build` will embed `v2.8.0` in the binary automatically.
+
 ### Graceful exit
 
 The server listens for `SIGINT` and `SIGTERM` and gives in-flight requests up to 10 seconds to complete before shutting down:
@@ -84,11 +93,15 @@ Each handler is annotated individually with `@Summary`, `@Param`, `@Success`, `@
 // @name Authorization
 ```
 
-Protected endpoints reference it with `// @Security BearerAuth`. The Swagger UI is served at `/v1/swagger/` using the `/*` wildcard pattern required by chi:
+Protected endpoints reference it with `// @Security BearerAuth`. The Swagger UI is served under the path derived from the `@BasePath` annotation:
 
 ```go
 r.Get("/swagger/*", httpSwagger.Handler())
 ```
+
+**Versioning in Swagger UI:** `docs.SwaggerInfo.Version` is overwritten at startup with the build-time `Version` variable (injected via ldflags), so the Swagger UI always shows the real binary version rather than the static placeholder in the generated docs.
+
+**API route prefix:** The `@BasePath` annotation (e.g. `// @BasePath /v1`) is the single source of truth for the versioned route prefix. `main.go` reads `docs.SwaggerInfo.BasePath` at startup and passes it to the router, so changing `@BasePath` and regenerating docs automatically updates the live routes on the next build — no code change needed.
 
 Regenerate the spec after changing annotations:
 
@@ -156,7 +169,7 @@ At this time, you have a RESTful API server running at `http://127.0.0.1:8080`. 
 Try the URL `http://localhost:8080/healthcheck` in a browser, and you should see a JSON response like:
 
 ```json
-{"status":"ok","version":"1.0.0","db":"ok"}
+{"status":"ok","version":"v2.7.0","db":"ok"}
 ```
 
 If you have `cURL` or some API client tools (e.g. [Postman](https://www.getpostman.com/)), you may try the following

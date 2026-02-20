@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- `Version` in `cmd/server/main.go` now defaults to `"dev"`; the Makefile's `git describe --tags` ldflags injection is the sole owner of the real version at build time. Makefile fallback also changed from `"1.0.0"` to `"dev"` for consistency
+- Swagger UI version now reflects the build-time `Version` variable: `docs.SwaggerInfo.Version` is overwritten at startup via `docs.SwaggerInfo.Version = Version` instead of relying on the static value embedded by `swag init`
+- API route prefix (`/v1`) is now derived from `docs.SwaggerInfo.BasePath` (populated by the `@BasePath` annotation) instead of being hardcoded in `buildHandler`; the `@BasePath` annotation is the single source of truth for the versioned route prefix
+
+### Fixed
+- Corrected `.gitignore` pattern for the server binary from `./server` (invalid) to `/server` (rooted)
+
+## [v2.7.0] - 2026-02-20
+
+### Added
+- Prometheus metrics at `GET /metrics`: `http_requests_total` (counter) and `http_request_duration_seconds` (histogram), labelled by method, chi route pattern, and status code (`pkg/metrics`)
+- Health check endpoint now returns JSON `{"status","version","db"}` and pings the database on every request; returns HTTP 503 with `"status":"degraded"` when the DB is unreachable
+- `request_id` field in all JSON error responses (populated from the `X-Request-ID` request header or a generated UUID); `X-Request-ID` response header set by the access-log middleware for client-side correlation
+
+### Changed
+- Auth credentials (`auth_username`, `auth_password`) are now loaded from config / `APP_AUTH_USERNAME` / `APP_AUTH_PASSWORD` env vars — hardcoded `demo`/`pass` credentials removed
+- CORS is now configurable via `cors_allowed_origins` in config (replaces hardcoded `cors.AllowAll()`); dev configs default to `["*"]`
+- JWT signing key requires a minimum of 32 characters (enforced by config validation)
+- Database connection pool configured: `SetMaxOpenConns(25)`, `SetMaxIdleConns(5)`, `SetConnMaxLifetime(5m)`
+- `tokenAuth` in auth middleware changed from a package-level global to a local variable (eliminates data race)
+- JSON decode errors in album handlers now logged at `Error` level (was `Info`)
+- `repository.Delete()` no longer issues a redundant `Get()` before deleting; uses `RowsAffected()` instead
+- Transaction rollback/commit errors in `dbcontext` now logged to stderr instead of silently discarded
+- `json.Encoder` error in `RespondJSON` now logged instead of silently discarded
+
+### Fixed
+- Thread-safety: removed package-level `tokenAuth` global from `internal/auth/middleware.go`
+
+### Database
+- New migration (`20260220000000`): adds `VARCHAR(36)` constraint on `album.id`, `VARCHAR(128)` on `album.name`, and indexes on `album.created_at` and `album.updated_at`
+
 ## [v2.6.0] - 2026-02-21
 
 ### Changed
@@ -127,7 +159,8 @@ Initial release (upstream: [qiangxue/go-rest-api](https://github.com/qiangxue/go
 - Graceful shutdown
 - Full test coverage with mock-based unit tests
 
-[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.7.0...HEAD
+[v2.7.0]: https://github.com/leoluyi/go-api-template/compare/v2.6.0...v2.7.0
 [v2.6.0]: https://github.com/leoluyi/go-api-template/compare/v2.5.0...v2.6.0
 [v2.5.0]: https://github.com/leoluyi/go-api-template/compare/v2.4.0...v2.5.0
 [v2.4.0]: https://github.com/leoluyi/go-api-template/compare/v2.3.0...v2.4.0
