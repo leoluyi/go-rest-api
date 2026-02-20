@@ -74,13 +74,15 @@ version: ## display the version of the API server
 
 .PHONY: db-start
 db-start: ## start the database server
-	docker start postgres &>/dev/null || docker run -d --rm \
+	docker rm -f postgres &>/dev/null || true
+	docker run -d --rm \
 	  --name postgres \
 	  -e POSTGRES_DB=go_restful \
 	  -e POSTGRES_PASSWORD=postgres \
 	  -p 5432:5432 \
 	  -v $(shell pwd)/testdata:/testdata \
 	  postgres:17-alpine
+	@until docker exec postgres pg_isready -U postgres -q 2>/dev/null; do sleep 1; done
 
 .PHONY: db-stop
 db-stop: ## stop the database server
