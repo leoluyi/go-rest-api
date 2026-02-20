@@ -58,6 +58,28 @@ Three custom middlewares are wired into the router in `cmd/server/main.go`:
 | Error handler | `internal/errors` | Recovers from panics and maps errors to structured JSON responses |
 | JWT auth | `internal/auth` | Verifies and authenticates Bearer tokens on protected routes |
 
+### Swagger API documentation
+
+Each handler is annotated individually with `@Summary`, `@Param`, `@Success`, `@Failure`, and `@Security` tags. The security scheme is declared once in `main.go`:
+
+```go
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+```
+
+Protected endpoints reference it with `// @Security BearerAuth`. The Swagger UI is served at `/v1/swagger/` using the `/*` wildcard pattern required by chi:
+
+```go
+r.Get("/swagger/*", httpSwagger.Handler())
+```
+
+Regenerate the spec after changing annotations:
+
+```shell
+make generate-docs
+```
+
 The kit uses the following Go packages:
 
 | Concern | Package |
