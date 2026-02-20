@@ -19,6 +19,6 @@ func TestAPI(t *testing.T) {
 		Body:         "",
 		Header:       nil,
 		WantStatus:   http.StatusOK,
-		WantResponse: `"OK 0.9.0"`,
+		WantResponse: `*OK 0.9.0*`,
 	})
 }

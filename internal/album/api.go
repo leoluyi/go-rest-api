@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/jwtauth/v5"
 	"github.com/qiangxue/go-rest-api/internal/errors"
 	"github.com/qiangxue/go-rest-api/pkg/log"
 	"github.com/qiangxue/go-rest-api/pkg/pagination"
@@ -35,7 +34,6 @@ func RegisterHandlers(r chi.Router, service Service, authHandler func(http.Handl
 	// protected routes — require a valid JWT
 	r.Group(func(r chi.Router) {
 		r.Use(authHandler)
-		r.Use(jwtauth.Authenticator)
 		r.Post("/albums", rs.create)
 		r.Put("/albums/{id}", rs.update)
 		r.Delete("/albums/{id}", rs.delete)

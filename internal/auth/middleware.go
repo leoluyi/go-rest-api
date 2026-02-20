@@ -16,9 +16,14 @@ const userKey contextKey = iota
 var tokenAuth *jwtauth.JWTAuth
 
 // Handler returns a JWT-based authentication middleware.
+// It combines token verification and authentication: requests with a missing
+// or invalid token are rejected with 401.
 func Handler(JWTSigningKey string) func(http.Handler) http.Handler {
 	tokenAuth = jwtauth.New("HS256", []byte(JWTSigningKey), nil)
-	return jwtauth.Verifier(tokenAuth)
+	verifier := jwtauth.Verifier(tokenAuth)
+	return func(next http.Handler) http.Handler {
+		return verifier(jwtauth.Authenticator(next))
+	}
 }
 
 // WithUser returns a context that contains the user identity.
