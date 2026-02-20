@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 MODULE = $(shell go list -m)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || echo "1.0.0")
 PACKAGES := $(shell go list ./... | grep -v /vendor/)
@@ -30,7 +32,7 @@ test-cover: test ## run unit tests and show test coverage information
 	go tool cover -html=coverage-all.out
 
 .PHONY: generate-docs
-generate-docs:
+generate-docs: ## generate Swagger API documentation
 	@swag init -g cmd/server/main.go
 
 .PHONY: run
@@ -43,12 +45,13 @@ run-with-db: db-start ## run the API server with database server
 
 .PHONY: run-restart
 run-restart: ## restart the API server
-	@pkill -P `cat $(PID_FILE)` || true
+	@pkill -P $$(cat $(PID_FILE)) || true
 	@printf '%*s\n' "80" '' | tr ' ' -
 	@echo "Source file changed. Restarting server..."
 	@go run ${LDFLAGS} cmd/server/main.go & echo $$! > $(PID_FILE)
 	@printf '%*s\n' "80" '' | tr ' ' -
 
+.PHONY: run-live
 run-live: ## run the API server with live reload support (requires fswatch)
 	@go run ${LDFLAGS} cmd/server/main.go & echo $$! > $(PID_FILE)
 	@fswatch -x -o --event Created --event Updated --event Renamed -r internal pkg cmd config | xargs -n1 -I {} make run-restart
@@ -85,9 +88,9 @@ db-stop: ## stop the database server
 
 .PHONY: testdata
 testdata: ## populate the database with test data
-	make migrate-reset
+	$(MAKE) migrate-reset
 	@echo "Populating test data..."
-	@docker exec -it postgres psql "$(APP_DSN)" -f /testdata/testdata.sql
+	@docker exec -i postgres psql "$(APP_DSN)" -f /testdata/testdata.sql
 
 .PHONY: lint
 lint: ## run golint on all Go package
