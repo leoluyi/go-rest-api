@@ -5,7 +5,7 @@ coverage*.*
 testdata/postgres
 
 # server binary
-./server
+/server
 
 # PID file generated to support live reload
 .pid
