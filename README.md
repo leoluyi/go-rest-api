@@ -114,6 +114,7 @@ replacement of the string `github.com/leoluyi/go-api-template` in all of project
 │   ├── dbcontext        database context and transaction helpers
 │   ├── log              structured and context-aware logger
 │   └── pagination       paginated list
+├── scripts              utility and operational scripts
 └── testdata             test data scripts
 ```
 
