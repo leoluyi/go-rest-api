@@ -1,9 +1,4 @@
-# Go RESTful API Starter Kit (Boilerplate)
-
-[![GoDoc](https://godoc.org/github.com/qiangxue/go-rest-api?status.png)](http://godoc.org/github.com/qiangxue/go-rest-api)
-[![Build Status](https://github.com/qiangxue/go-rest-api/workflows/build/badge.svg)](https://github.com/qiangxue/go-rest-api/actions?query=workflow%3Abuild)
-[![Code Coverage](https://codecov.io/gh/qiangxue/go-rest-api/branch/master/graph/badge.svg)](https://codecov.io/gh/qiangxue/go-rest-api)
-[![Go Report](https://goreportcard.com/badge/github.com/qiangxue/go-rest-api)](https://goreportcard.com/report/github.com/qiangxue/go-rest-api)
+# Go RESTful API Starter Kit
 
 This starter kit is designed to get you up and running with a project structure optimized for developing
 RESTful API services in Go. It promotes the best practices that follow the [SOLID principles](https://en.wikipedia.org/wiki/SOLID)
@@ -20,34 +15,39 @@ The kit provides the following features right out of the box:
 - Error handling with proper error response generation
 - Database migration
 - Data validation
+- Swagger API documentation
 - Full test coverage
 - Live reloading during development
 
-The kit uses the following Go packages which can be easily replaced with your own favorite ones
-since their usages are mostly localized and abstracted.
+The kit uses the following Go packages:
 
-- Routing: [ozzo-routing](https://github.com/go-ozzo/ozzo-routing)
-- Database access: [ozzo-dbx](https://github.com/go-ozzo/ozzo-dbx)
-- Database migration: [golang-migrate](https://github.com/golang-migrate/migrate)
-- Data validation: [ozzo-validation](https://github.com/go-ozzo/ozzo-validation)
-- Logging: [zap](https://github.com/uber-go/zap)
-- JWT: [jwt-go](https://github.com/dgrijalva/jwt-go)
+| Concern | Package |
+|---------|---------|
+| Router | [go-chi/chi/v5](https://github.com/go-chi/chi) |
+| JWT middleware | [go-chi/jwtauth/v5](https://github.com/go-chi/jwtauth) |
+| JWT signing | [golang-jwt/jwt/v4](https://github.com/golang-jwt/jwt) |
+| CORS | [go-chi/cors](https://github.com/go-chi/cors) |
+| Database access | [jmoiron/sqlx](https://github.com/jmoiron/sqlx) + [lib/pq](https://github.com/lib/pq) |
+| Database migration | [golang-migrate](https://github.com/golang-migrate/migrate) |
+| Data validation | [go-playground/validator/v10](https://github.com/go-playground/validator) |
+| Logging | [uber-go/zap](https://github.com/uber-go/zap) |
+| API docs | [swaggo/swag](https://github.com/swaggo/swag) |
 
 ## Getting Started
 
 If this is your first time encountering Go, please follow [the instructions](https://golang.org/doc/install) to
-install Go on your computer. The kit requires **Go 1.13 or above**.
+install Go on your computer. The kit requires **Go 1.24 or above**.
 
 [Docker](https://www.docker.com/get-started) is also needed if you want to try the kit without setting up your
-own database server. The kit requires **Docker 17.05 or higher** for the multi-stage build support.
+own database server.
 
 After installing Go and Docker, run the following commands to start experiencing this starter kit:
 
 ```shell
 # download the starter kit
-git clone https://github.com/qiangxue/go-rest-api.git
+git clone https://github.com/leoluyi/go-api-template.git
 
-cd go-rest-api
+cd go-api-template
 
 # start a PostgreSQL database server in a Docker container
 make db-start
@@ -72,6 +72,7 @@ At this time, you have a RESTful API server running at `http://127.0.0.1:8080`. 
 - `POST /v1/albums`: creates a new album
 - `PUT /v1/albums/:id`: updates an existing album
 - `DELETE /v1/albums/:id`: deletes an album
+- `GET /v1/swagger/*`: Swagger UI for interactive API documentation
 
 Try the URL `http://localhost:8080/healthcheck` in a browser, and you should see something like `"OK v1.0.0"` displayed.
 
@@ -88,32 +89,31 @@ curl -X GET -H "Authorization: Bearer ...JWT token here..." http://localhost:808
 # should return a list of album records in the JSON format
 ```
 
-To use the starter kit as a starting point of a real project whose package name is `github.com/abc/xyz`, do a global
-replacement of the string `github.com/qiangxue/go-rest-api` in all of project files with the string `github.com/abc/xyz`.
+To use the starter kit as a starting point of a real project whose package name is `github.com/myorg/myproject`, do a global
+replacement of the string `github.com/leoluyi/go-api-template` in all of project files with the string `github.com/myorg/myproject`.
 
 ## Project Layout
-
-The starter kit uses the following project layout:
 
 ```
 .
 ├── cmd                  main applications of the project
-│   └── server           the API server application
+│   └── server           the API server application
 ├── config               configuration files for different environments
+├── docs                 generated Swagger documentation
 ├── internal             private application and library code
-│   ├── album            album-related features
-│   ├── auth             authentication feature
-│   ├── config           configuration library
-│   ├── entity           entity definitions and domain logic
-│   ├── errors           error types and handling
-│   ├── healthcheck      healthcheck feature
-│   └── test             helpers for testing purpose
+│   ├── album            album-related features
+│   ├── auth             authentication feature
+│   ├── config           configuration library
+│   ├── entity           entity definitions and domain logic
+│   ├── errors           error types and handling
+│   ├── healthcheck      healthcheck feature
+│   └── test             helpers for testing purpose
 ├── migrations           database migrations
 ├── pkg                  public library code
-│   ├── accesslog        access log middleware
-│   ├── graceful         graceful shutdown of HTTP server
-│   ├── log              structured and context-aware logger
-│   └── pagination       paginated list
+│   ├── accesslog        access log middleware
+│   ├── dbcontext        database context and transaction helpers
+│   ├── log              structured and context-aware logger
+│   └── pagination       paginated list
 └── testdata             test data scripts
 ```
 
@@ -124,7 +124,7 @@ Within `internal` and `pkg`, packages are structured by features in order to ach
 [screaming architecture](https://blog.cleancoder.com/uncle-bob/2011/09/30/Screaming-Architecture.html). For example,
 the `album` directory contains the application logic related with the album feature.
 
-Within each feature package, code are organized in layers (API, service, repository), following the dependency guidelines
+Within each feature package, code is organized in layers (API, service, repository), following the dependency guidelines
 as described in the [clean architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html).
 
 ## Common Development Tasks
@@ -191,6 +191,20 @@ make migrate-down
 make migrate-reset
 ```
 
+### Generating API Documentation
+
+The kit uses [swaggo/swag](https://github.com/swaggo/swag) to generate Swagger documentation from annotations in the source code.
+
+```shell
+# Install swag CLI (first time only)
+go install github.com/swaggo/swag/cmd/swag@latest
+
+# Regenerate docs after updating annotations
+make generate-docs
+```
+
+The generated docs are served at `http://localhost:8080/v1/swagger/` when the server is running.
+
 ### Managing Configurations
 
 The application configuration is represented in `internal/config/config.go`. When the application starts,
@@ -219,4 +233,10 @@ command,
 
 ```shell
 ./server -config=./config/prod.yml
+```
+
+Alternatively, use `docker-compose` to run the full stack (API server + PostgreSQL):
+
+```shell
+docker-compose up
 ```
