@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Moved `stress-test.sh` to `scripts/stress-test.sh`
 - Added `make stress-test` Makefile target
 
+### Fixed
+- Set `SHELL := /bin/bash` in Makefile to fix bash-specific syntax (`&>/dev/null`, `read -p`) under `/bin/sh`
+- Added missing `.PHONY` for `run-live` target
+- Replaced bare `make` with `$(MAKE)` in `testdata` target
+- Replaced backtick command substitution with `$$()` in `run-restart`
+- Dropped `-t` from `docker exec` in `testdata` target to allow non-TTY execution (e.g. CI)
+- Added help comment to `generate-docs` target so it appears in `make help`
+
 ## [v2.0.0] - 2026-02-21
 
 ### Added
