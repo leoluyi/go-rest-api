@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v2.5.0] - 2026-02-21
+
+### Changed
+- Upgraded PostgreSQL image from `postgres:17-alpine` to `postgres:18-alpine` across Makefile, docker-compose.yml, and CI workflow
+
 ## [v2.4.0] - 2026-02-21
 
 ### Changed
@@ -107,7 +112,8 @@ Initial release (upstream: [qiangxue/go-rest-api](https://github.com/qiangxue/go
 - Graceful shutdown
 - Full test coverage with mock-based unit tests
 
-[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.5.0...HEAD
+[v2.5.0]: https://github.com/leoluyi/go-api-template/compare/v2.4.0...v2.5.0
 [v2.4.0]: https://github.com/leoluyi/go-api-template/compare/v2.3.0...v2.4.0
 [v2.3.0]: https://github.com/leoluyi/go-api-template/compare/v2.2.0...v2.3.0
 [v2.2.0]: https://github.com/leoluyi/go-api-template/compare/v2.1.0...v2.2.0

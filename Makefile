@@ -81,7 +81,7 @@ db-start: ## start the database server
 	  -e POSTGRES_PASSWORD=postgres \
 	  -p 5432:5432 \
 	  -v $(shell pwd)/testdata:/testdata \
-	  postgres:17-alpine
+	  postgres:18-alpine
 	@until docker exec postgres pg_isready -U postgres -q 2>/dev/null; do sleep 1; done
 
 .PHONY: db-stop
