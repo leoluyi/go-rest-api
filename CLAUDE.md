@@ -43,7 +43,11 @@ make fmt              # gofmt
 ### Database
 
 ```bash
-make db-start         # Start PostgreSQL container
+make db-start         # Start PostgreSQL container (NOTE: the Makefile mounts
+                      # testdata/postgres as the data dir; if that volume contains
+                      # stale data the container exits immediately. If db-start fails,
+                      # run: docker run -d --name postgres -e POSTGRES_DB=go_restful \
+                      #   -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:14.10)
 make db-stop          # Stop PostgreSQL container
 make migrate          # Run pending migrations
 make migrate-new      # Create new migration file
