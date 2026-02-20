@@ -1,23 +1,142 @@
 basePath: /v1
-host: petstore.swagger.io
+definitions:
+  album.Album:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  album.CreateAlbumRequest:
+    properties:
+      name:
+        maxLength: 128
+        type: string
+    required:
+    - name
+    type: object
+  album.UpdateAlbumRequest:
+    properties:
+      name:
+        maxLength: 128
+        type: string
+    required:
+    - name
+    type: object
+  auth.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  auth.LoginResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  errors.ErrorResponse:
+    properties:
+      details: {}
+      message:
+        type: string
+      status:
+        type: integer
+    type: object
+  pagination.Pages:
+    properties:
+      items: {}
+      page:
+        type: integer
+      page_count:
+        type: integer
+      per_page:
+        type: integer
+      total_count:
+        type: integer
+    type: object
+host: localhost:8080
 info:
   contact:
-    email: support@swagger.io
-    name: API Support
-    url: http://www.swagger.io/support
-  description: This is a sample server Petstore server.
+    name: Issues
+    url: https://github.com/leoluyi/go-api-template/issues
+  description: RESTful API starter kit built with Go, chi, and PostgreSQL.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
-  title: Swagger Example API
+  title: Go API Template
   version: "1.0"
 paths:
-  /albums/{id}:
+  /albums:
     get:
-      description: GetArticle returns a single article by id
+      description: Returns a paginated list of albums
       parameters:
-      - description: article id
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pagination.Pages'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: List albums
+      tags:
+      - Albums
+    post:
+      consumes:
+      - application/json
+      description: Creates a new album
+      parameters:
+      - description: Album to create
+        in: body
+        name: album
+        required: true
+        schema:
+          $ref: '#/definitions/album.CreateAlbumRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/album.Album'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create album
+      tags:
+      - Albums
+  /albums/{id}:
+    delete:
+      description: Deletes an album by ID
+      parameters:
+      - description: Album ID
         in: path
         name: id
         required: true
@@ -26,27 +145,129 @@ paths:
       - application/json
       responses:
         "200":
-          description: ""
-        "400":
-          description: ""
+          description: OK
+          schema:
+            $ref: '#/definitions/album.Album'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
-          description: ""
-      summary: Get albums by id
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete album
       tags:
       - Albums
-  /login/{id}:
-    post:
-      description: Authenticates a user and generates a JWT
+    get:
+      description: Returns a single album by ID
+      parameters:
+      - description: Album ID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: ""
-        "400":
-          description: ""
+          description: OK
+          schema:
+            $ref: '#/definitions/album.Album'
         "404":
-          description: ""
-      summary: Authenticates a user
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Get album
+      tags:
+      - Albums
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing album by ID
+      parameters:
+      - description: Album ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated album data
+        in: body
+        name: album
+        required: true
+        schema:
+          $ref: '#/definitions/album.UpdateAlbumRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/album.Album'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update album
+      tags:
+      - Albums
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns a JWT token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Authenticate user
       tags:
       - Auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

@@ -1,13 +1,11 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "This is a sample server Petstore server.",
-        "title": "Swagger Example API",
-        "termsOfService": "http://swagger.io/terms/",
+        "description": "RESTful API starter kit built with Go, chi, and PostgreSQL.",
+        "title": "Go API Template",
         "contact": {
-            "name": "API Support",
-            "url": "http://www.swagger.io/support",
-            "email": "support@swagger.io"
+            "name": "Issues",
+            "url": "https://github.com/leoluyi/go-api-template/issues"
         },
         "license": {
             "name": "Apache 2.0",
@@ -15,23 +13,118 @@
         },
         "version": "1.0"
     },
-    "host": "petstore.swagger.io",
+    "host": "localhost:8080",
     "basePath": "/v1",
     "paths": {
-        "/albums/{id}": {
+        "/albums": {
             "get": {
-                "description": "GetArticle returns a single article by id",
+                "description": "Returns a paginated list of albums",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Albums"
                 ],
-                "summary": "Get albums by id",
+                "summary": "List albums",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "per_page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pagination.Pages"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new album",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Albums"
+                ],
+                "summary": "Create album",
+                "parameters": [
+                    {
+                        "description": "Album to create",
+                        "name": "album",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/album.CreateAlbumRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/album.Album"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/albums/{id}": {
+            "get": {
+                "description": "Returns a single album by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Albums"
+                ],
+                "summary": "Get album",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "article id",
+                        "description": "Album ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -39,39 +132,288 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
-                    },
-                    "400": {
-                        "description": ""
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/album.Album"
+                        }
                     },
                     "404": {
-                        "description": ""
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing album by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Albums"
+                ],
+                "summary": "Update album",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Album ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated album data",
+                        "name": "album",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/album.UpdateAlbumRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/album.Album"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes an album by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Albums"
+                ],
+                "summary": "Delete album",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Album ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/album.Album"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
                     }
                 }
             }
         },
-        "/login/{id}": {
+        "/login": {
             "post": {
-                "description": "Authenticates a user and generates a JWT",
+                "description": "Authenticates a user and returns a JWT token",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Authenticates a user",
+                "summary": "Authenticate user",
+                "parameters": [
+                    {
+                        "description": "Login credentials",
+                        "name": "credentials",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.LoginRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.LoginResponse"
+                        }
                     },
                     "400": {
-                        "description": ""
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
                     },
-                    "404": {
-                        "description": ""
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
                     }
                 }
             }
+        }
+    },
+    "definitions": {
+        "album.Album": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "album.CreateAlbumRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                }
+            }
+        },
+        "album.UpdateAlbumRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                }
+            }
+        },
+        "auth.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "errors.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "details": {},
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "pagination.Pages": {
+            "type": "object",
+            "properties": {
+                "items": {},
+                "page": {
+                    "type": "integer"
+                },
+                "page_count": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }

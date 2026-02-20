@@ -9,26 +9,37 @@ import (
 	"github.com/leoluyi/go-api-template/pkg/log"
 )
 
+// LoginRequest represents a login request body.
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// LoginResponse represents a successful login response.
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
 // RegisterHandlers registers handlers for different HTTP requests.
-// @Summary Authenticates a user
-// @Description Authenticates a user and generates a JWT
-// @Tags Auth
-// @Produce json
-// @Router /login [post]
-// @Success 200
-// @Failure 400
-// @Failure 401
 func RegisterHandlers(r chi.Router, service Service, logger log.Logger) {
 	r.Post("/login", login(service, logger))
 }
 
 // login returns a handler that handles user login requests.
+//
+// @Summary      Authenticate user
+// @Description  Authenticates a user and returns a JWT token
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        credentials  body      LoginRequest   true  "Login credentials"
+// @Success      200          {object}  LoginResponse
+// @Failure      400          {object}  errors.ErrorResponse
+// @Failure      401          {object}  errors.ErrorResponse
+// @Router       /login [post]
 func login(service Service, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-		}
+		var req LoginRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			logger.With(r.Context()).Errorf("invalid request: %v", err)
 			errors.RespondWithError(w, errors.BadRequest(""))
@@ -39,8 +50,6 @@ func login(service Service, logger log.Logger) http.HandlerFunc {
 			errors.RespondWithError(w, err)
 			return
 		}
-		errors.RespondJSON(w, http.StatusOK, struct {
-			Token string `json:"token"`
-		}{token})
+		errors.RespondJSON(w, http.StatusOK, LoginResponse{Token: token})
 	}
 }

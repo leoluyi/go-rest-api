@@ -13,8 +13,8 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/qiangxue/go-env v1.0.1
 	github.com/stretchr/testify v1.8.4
-	github.com/swaggo/http-swagger v1.3.3
-	github.com/swaggo/swag v1.8.6
+	github.com/swaggo/http-swagger v1.3.4
+	github.com/swaggo/swag v1.16.6
 	go.uber.org/zap v1.23.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -47,7 +47,9 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect

@@ -33,20 +33,22 @@ var Version = "1.0.0"
 
 var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
 
-// @title Swagger Example API
-// @version 1.0
-// @description This is a sample server Petstore server.
-// @termsOfService http://swagger.io/terms/
+// @title           Go API Template
+// @version         1.0
+// @description     RESTful API starter kit built with Go, chi, and PostgreSQL.
 
-// @contact.name API Support
-// @contact.url http://www.swagger.io/support
-// @contact.email support@swagger.io
+// @contact.name    Issues
+// @contact.url     https://github.com/leoluyi/go-api-template/issues
 
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+// @license.name    Apache 2.0
+// @license.url     http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host petstore.swagger.io
-// @BasePath /v1
+// @host            localhost:8080
+// @BasePath        /v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in              header
+// @name            Authorization
 func main() {
 	flag.Parse()
 	// create root logger tagged with server version
@@ -111,7 +113,7 @@ func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.
 	healthcheck.RegisterHandlers(router, Version)
 
 	router.Route("/v1", func(r chi.Router) {
-		r.Get("/swagger*", httpSwagger.Handler())
+		r.Get("/swagger/*", httpSwagger.Handler())
 
 		authHandler := auth.Handler(cfg.JWTSigningKey)
 		auth.RegisterHandlers(r, auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, logger), logger)
