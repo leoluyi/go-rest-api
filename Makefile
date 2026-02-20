@@ -112,6 +112,10 @@ migrate-new: ## create a new database migration
 	@read -p "Enter the name of the new migration: " name; \
 	$(MIGRATE) create -ext sql -dir /migrations/ $${name// /_}
 
+.PHONY: stress-test
+stress-test: ## run stress test against the API server (requires ab)
+	@scripts/stress-test.sh
+
 .PHONY: migrate-reset
 migrate-reset: ## reset database and re-run all migrations
 	@echo "Resetting database..."
