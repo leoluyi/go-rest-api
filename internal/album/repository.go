@@ -2,6 +2,7 @@ package album
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/leoluyi/go-api-template/internal/entity"
@@ -63,12 +64,18 @@ func (r repository) Update(ctx context.Context, album entity.Album) error {
 
 // Delete deletes an album with the specified ID from the database.
 func (r repository) Delete(ctx context.Context, id string) error {
-	album, err := r.Get(ctx, id)
+	result, err := r.db.With(ctx).ExecContext(ctx, "DELETE FROM album WHERE id=$1", id)
 	if err != nil {
 		return err
 	}
-	_, err = r.db.With(ctx).ExecContext(ctx, "DELETE FROM album WHERE id=$1", album.ID)
-	return err
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 // Count returns the number of the album records in the database.

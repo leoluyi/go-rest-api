@@ -30,6 +30,7 @@ import (
 	"github.com/leoluyi/go-api-template/pkg/accesslog"
 	"github.com/leoluyi/go-api-template/pkg/dbcontext"
 	"github.com/leoluyi/go-api-template/pkg/log"
+	"github.com/leoluyi/go-api-template/pkg/metrics"
 )
 
 // Version indicates the current version of the application.
@@ -71,6 +72,9 @@ func main() {
 		logger.Error(err)
 		os.Exit(-1)
 	}
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
 	defer func() {
 		if err := db.Close(); err != nil {
 			logger.Error(err)
@@ -87,7 +91,7 @@ func main() {
 	address := fmt.Sprintf(":%v", cfg.ServerPort)
 	hs := &http.Server{
 		Addr:    address,
-		Handler: buildHandler(logger, dbcontext.New(db), cfg),
+		Handler: buildHandler(logger, db, dbcontext.New(db), cfg),
 	}
 
 	// start the HTTP server with graceful shutdown
@@ -132,23 +136,30 @@ func runMigrations(db *sqlx.DB, logger log.Logger) error {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.Handler {
+func buildHandler(logger log.Logger, rawDB *sqlx.DB, db *dbcontext.DB, cfg *config.Config) http.Handler {
 	router := chi.NewRouter()
 
 	router.Use(
 		accesslog.Handler(logger),
 		errors.Handler(logger),
+		metrics.Middleware,
 		middleware.AllowContentType("application/json"),
-		cors.AllowAll().Handler,
+		cors.New(cors.Options{
+			AllowedOrigins: cfg.CORSAllowedOrigins,
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders: []string{"Authorization", "Content-Type"},
+			MaxAge:         300,
+		}).Handler,
 	)
 
-	healthcheck.RegisterHandlers(router, Version)
+	healthcheck.RegisterHandlers(router, Version, rawDB)
+	router.Method(http.MethodGet, "/metrics", metrics.Handler())
 
 	router.Route("/v1", func(r chi.Router) {
 		r.Get("/swagger/*", httpSwagger.Handler())
 
 		authHandler := auth.Handler(cfg.JWTSigningKey)
-		auth.RegisterHandlers(r, auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, logger), logger)
+		auth.RegisterHandlers(r, auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, cfg.AuthUsername, cfg.AuthPassword, logger), logger)
 		album.RegisterHandlers(r, album.NewService(album.NewRepository(db, logger), logger), authHandler, logger)
 	})
 

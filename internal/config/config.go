@@ -22,10 +22,17 @@ type Config struct {
 	ServerPort int `yaml:"server_port" env:"SERVER_PORT"`
 	// the data source name (DSN) for connecting to the database. required.
 	DSN string `yaml:"dsn" env:"DSN,secret" validate:"required"`
-	// JWT signing key. required.
-	JWTSigningKey string `yaml:"jwt_signing_key" env:"JWT_SIGNING_KEY,secret" validate:"required"`
+	// JWT signing key. required. Must be at least 32 characters for HS256.
+	JWTSigningKey string `yaml:"jwt_signing_key" env:"JWT_SIGNING_KEY,secret" validate:"required,min=32"`
 	// JWT expiration in hours. Defaults to 72 hours (3 days)
 	JWTExpiration int `yaml:"jwt_expiration" env:"JWT_EXPIRATION"`
+	// authentication username. required. Override with APP_AUTH_USERNAME env var in production.
+	AuthUsername string `yaml:"auth_username" env:"AUTH_USERNAME,secret" validate:"required"`
+	// authentication password. required. Override with APP_AUTH_PASSWORD env var in production.
+	AuthPassword string `yaml:"auth_password" env:"AUTH_PASSWORD,secret" validate:"required"`
+	// CORSAllowedOrigins is the list of origins allowed for cross-origin requests.
+	// Use ["*"] for development only. In production set specific origins, e.g. ["https://example.com"].
+	CORSAllowedOrigins []string `yaml:"cors_allowed_origins"`
 }
 
 // Validate validates the application configuration.

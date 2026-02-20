@@ -12,12 +12,15 @@ The kit provides the following features right out of the box:
 - JWT-based authentication
 - Environment dependent application configuration management
 - Structured logging with contextual information
-- Error handling with proper error response generation
-- Database migration
+- Error handling with proper error response generation (includes `request_id` in every error response)
+- Database migration (embedded in binary, applied automatically on startup)
 - Data validation
 - Swagger API documentation
 - Full test coverage
 - Live reloading during development
+- Health check endpoint with database connectivity probe (returns 503 when DB is unreachable)
+- Prometheus metrics (`/metrics`) with per-route request count and latency histograms
+- Configurable CORS (per-environment allowed origins)
 
 ## Best Practices
 
@@ -62,12 +65,13 @@ On startup, `main.go` runs all pending migrations via the `golang-migrate/migrat
 
 ### Custom middlewares
 
-Three custom middlewares are wired into the router in `cmd/server/main.go`:
+Four custom middlewares are wired into the router in `cmd/server/main.go`:
 
 | Middleware | Location | Purpose |
 |------------|----------|---------|
-| Access log | `pkg/accesslog` | Logs method, path, status, duration, and bytes for every request |
-| Error handler | `internal/errors` | Recovers from panics and maps errors to structured JSON responses |
+| Access log | `pkg/accesslog` | Logs method, path, status, duration, and bytes; sets `X-Request-ID` response header |
+| Error handler | `internal/errors` | Recovers from panics and maps errors to structured JSON responses with `request_id` |
+| Metrics | `pkg/metrics` | Records `http_requests_total` and `http_request_duration_seconds` for Prometheus |
 | JWT auth | `internal/auth` | Verifies and authenticates Bearer tokens on protected routes |
 
 ### Swagger API documentation
@@ -104,6 +108,7 @@ The kit uses the following Go packages:
 | Database migration | [golang-migrate](https://github.com/golang-migrate/migrate) |
 | Data validation | [go-playground/validator/v10](https://github.com/go-playground/validator) |
 | Logging | [uber-go/zap](https://github.com/uber-go/zap) |
+| Metrics | [prometheus/client_golang](https://github.com/prometheus/client_golang) |
 | API docs | [swaggo/swag](https://github.com/swaggo/swag) |
 
 ## Getting Started
@@ -138,7 +143,8 @@ make run-live
 
 At this time, you have a RESTful API server running at `http://127.0.0.1:8080`. It provides the following endpoints:
 
-- `GET /healthcheck`: a healthcheck service provided for health checking purpose (needed when implementing a server cluster)
+- `GET /healthcheck`: returns JSON `{"status":"ok","version":"...","db":"ok"}` (HTTP 503 with `"status":"degraded"` if the database is unreachable)
+- `GET /metrics`: Prometheus metrics scrape endpoint
 - `POST /v1/login`: authenticates a user and generates a JWT
 - `GET /v1/albums`: returns a paginated list of the albums
 - `GET /v1/albums/:id`: returns the detailed information of an album
@@ -147,19 +153,29 @@ At this time, you have a RESTful API server running at `http://127.0.0.1:8080`. 
 - `DELETE /v1/albums/:id`: deletes an album
 - `GET /v1/swagger/*`: Swagger UI for interactive API documentation
 
-Try the URL `http://localhost:8080/healthcheck` in a browser, and you should see something like `"OK v1.0.0"` displayed.
+Try the URL `http://localhost:8080/healthcheck` in a browser, and you should see a JSON response like:
+
+```json
+{"status":"ok","version":"1.0.0","db":"ok"}
+```
 
 If you have `cURL` or some API client tools (e.g. [Postman](https://www.getpostman.com/)), you may try the following
 more complex scenarios:
 
 ```shell
 # authenticate the user via: POST /v1/login
-curl -X POST -H "Content-Type: application/json" -d '{"username": "demo", "password": "pass"}' http://localhost:8080/v1/login
+# credentials are set in config/local.yml (auth_username / auth_password)
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"username": "demo", "password": "changeme"}' \
+  http://localhost:8080/v1/login
 # should return a JWT token like: {"token":"...JWT token here..."}
 
 # with the above JWT token, access the album resources, such as: GET /v1/albums
 curl -X GET -H "Authorization: Bearer ...JWT token here..." http://localhost:8080/v1/albums
 # should return a list of album records in the JSON format
+
+# scrape Prometheus metrics
+curl http://localhost:8080/metrics
 ```
 
 To use the starter kit as a starting point of a real project whose package name is `github.com/myorg/myproject`, do a global
@@ -186,6 +202,7 @@ replacement of the string `github.com/leoluyi/go-api-template` in all of project
 │   ├── accesslog        access log middleware
 │   ├── dbcontext        database context and transaction helpers
 │   ├── log              structured and context-aware logger
+│   ├── metrics          Prometheus metrics middleware and handler
 │   └── pagination       paginated list
 ├── scripts              utility and operational scripts
 └── testdata             test data scripts
@@ -295,9 +312,25 @@ The `config` directory contains the configuration files named after different en
 `config/local.yml` corresponds to the local development environment and is used when running the application
 via `make run`.
 
-Do not keep secrets in the configuration files. Provide them via environment variables instead. For example,
-you should provide `Config.DSN` using the `APP_DSN` environment variable. Secrets can be populated from a secret
-storage (e.g. HashiCorp Vault) into environment variables before the process starts.
+The following fields are required and validated on startup:
+
+| Field | Env var | Notes |
+|-------|---------|-------|
+| `dsn` | `APP_DSN` | PostgreSQL connection string |
+| `jwt_signing_key` | `APP_JWT_SIGNING_KEY` | Must be **at least 32 characters** (HS256 requirement) |
+| `auth_username` | `APP_AUTH_USERNAME` | Login username |
+| `auth_password` | `APP_AUTH_PASSWORD` | Login password |
+
+The following fields are optional:
+
+| Field | Env var | Default | Notes |
+|-------|---------|---------|-------|
+| `server_port` | `APP_SERVER_PORT` | `8080` | |
+| `jwt_expiration` | `APP_JWT_EXPIRATION` | `72` | Hours until token expires |
+| `cors_allowed_origins` | — | `[]` (none) | Set to `["*"]` for dev, specific origins for prod |
+
+Do not keep secrets in the configuration files. Provide them via environment variables instead. Secrets can be
+populated from a secret store (e.g. HashiCorp Vault) into environment variables before the process starts.
 
 ## Deployment
 
@@ -311,7 +344,13 @@ The container runs the server binary directly. Database migrations are applied a
 the HTTP server begins accepting requests. Configure the application via `APP_`-prefixed environment variables:
 
 ```shell
-docker run -e APP_DSN="postgres://..." -e APP_JWT_SIGNING_KEY="..." -p 8080:8080 server:latest
+docker run \
+  -e APP_DSN="postgres://..." \
+  -e APP_JWT_SIGNING_KEY="<at-least-32-char-secret>" \
+  -e APP_AUTH_USERNAME="myuser" \
+  -e APP_AUTH_PASSWORD="mypassword" \
+  -e APP_CORS_ALLOWED_ORIGINS="https://app.example.com" \
+  -p 8080:8080 server:latest
 ```
 
 You can also run `make build` to build an executable binary named `server` and start it directly:

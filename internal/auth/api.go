@@ -42,12 +42,12 @@ func login(service Service, logger log.Logger) http.HandlerFunc {
 		var req LoginRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			logger.With(r.Context()).Errorf("invalid request: %v", err)
-			errors.RespondWithError(w, errors.BadRequest(""))
+			errors.RespondWithError(w, r, errors.BadRequest(""))
 			return
 		}
 		token, err := service.Login(r.Context(), req.Username, req.Password)
 		if err != nil {
-			errors.RespondWithError(w, err)
+			errors.RespondWithError(w, r, err)
 			return
 		}
 		errors.RespondJSON(w, http.StatusOK, LoginResponse{Token: token})

@@ -28,6 +28,7 @@ func Handler(logger log.Logger) func(next http.Handler) http.Handler {
 					if res.StatusCode() == http.StatusInternalServerError {
 						l.Errorf("encountered internal server error: %v", err)
 					}
+					res.RequestID = log.GetRequestID(r.Context())
 					RespondJSON(w, res.Status, res)
 				}
 			}()

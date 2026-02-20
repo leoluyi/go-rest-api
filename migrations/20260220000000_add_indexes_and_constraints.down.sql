@@ -1,0 +1,5 @@
+DROP INDEX IF EXISTS idx_album_created_at;
+DROP INDEX IF EXISTS idx_album_updated_at;
+
+ALTER TABLE album ALTER COLUMN id TYPE VARCHAR;
+ALTER TABLE album ALTER COLUMN name TYPE VARCHAR;

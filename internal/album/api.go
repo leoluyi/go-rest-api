@@ -44,7 +44,7 @@ func RegisterHandlers(r chi.Router, service Service, authHandler func(http.Handl
 func (rs resource) get(w http.ResponseWriter, r *http.Request) {
 	album, err := rs.service.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
-		errors.RespondWithError(w, err)
+		errors.RespondWithError(w, r, err)
 		return
 	}
 	errors.RespondJSON(w, http.StatusOK, album)
@@ -62,13 +62,13 @@ func (rs resource) get(w http.ResponseWriter, r *http.Request) {
 func (rs resource) query(w http.ResponseWriter, r *http.Request) {
 	count, err := rs.service.Count(r.Context())
 	if err != nil {
-		errors.RespondWithError(w, err)
+		errors.RespondWithError(w, r, err)
 		return
 	}
 	pages := pagination.NewFromRequest(r, count)
 	albums, err := rs.service.Query(r.Context(), pages.Offset(), pages.Limit())
 	if err != nil {
-		errors.RespondWithError(w, err)
+		errors.RespondWithError(w, r, err)
 		return
 	}
 	pages.Items = albums
@@ -90,13 +90,13 @@ func (rs resource) query(w http.ResponseWriter, r *http.Request) {
 func (rs resource) create(w http.ResponseWriter, r *http.Request) {
 	var input CreateAlbumRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		rs.logger.With(r.Context()).Info(err)
-		errors.RespondWithError(w, errors.BadRequest(""))
+		rs.logger.With(r.Context()).Error(err)
+		errors.RespondWithError(w, r, errors.BadRequest(""))
 		return
 	}
 	album, err := rs.service.Create(r.Context(), input)
 	if err != nil {
-		errors.RespondWithError(w, err)
+		errors.RespondWithError(w, r, err)
 		return
 	}
 	errors.RespondJSON(w, http.StatusCreated, album)
@@ -119,13 +119,13 @@ func (rs resource) create(w http.ResponseWriter, r *http.Request) {
 func (rs resource) update(w http.ResponseWriter, r *http.Request) {
 	var input UpdateAlbumRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		rs.logger.With(r.Context()).Info(err)
-		errors.RespondWithError(w, errors.BadRequest(""))
+		rs.logger.With(r.Context()).Error(err)
+		errors.RespondWithError(w, r, errors.BadRequest(""))
 		return
 	}
 	album, err := rs.service.Update(r.Context(), chi.URLParam(r, "id"), input)
 	if err != nil {
-		errors.RespondWithError(w, err)
+		errors.RespondWithError(w, r, err)
 		return
 	}
 	errors.RespondJSON(w, http.StatusOK, album)
@@ -145,7 +145,7 @@ func (rs resource) update(w http.ResponseWriter, r *http.Request) {
 func (rs resource) delete(w http.ResponseWriter, r *http.Request) {
 	album, err := rs.service.Delete(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
-		errors.RespondWithError(w, err)
+		errors.RespondWithError(w, r, err)
 		return
 	}
 	errors.RespondJSON(w, http.StatusOK, album)

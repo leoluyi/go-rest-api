@@ -28,12 +28,14 @@ type Identity interface {
 type service struct {
 	signingKey      string
 	tokenExpiration int
+	username        string
+	password        string
 	logger          log.Logger
 }
 
 // NewService creates a new authentication service.
-func NewService(signingKey string, tokenExpiration int, logger log.Logger) Service {
-	return service{signingKey, tokenExpiration, logger}
+func NewService(signingKey string, tokenExpiration int, username, password string, logger log.Logger) Service {
+	return service{signingKey, tokenExpiration, username, password, logger}
 }
 
 // Login authenticates a user and generates a JWT token if authentication succeeds.
@@ -50,10 +52,9 @@ func (s service) Login(ctx context.Context, username, password string) (string, 
 func (s service) authenticate(ctx context.Context, username, password string) Identity {
 	logger := s.logger.With(ctx, "user", username)
 
-	// the following authentication logic is only for demo purpose
-	if username == "demo" && password == "pass" {
+	if username == s.username && password == s.password {
 		logger.Infof("authentication successful")
-		return entity.User{ID: "100", Name: "demo"}
+		return entity.User{ID: "100", Name: username}
 	}
 
 	logger.Infof("authentication failed")

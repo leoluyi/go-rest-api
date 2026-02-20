@@ -4,7 +4,9 @@ package dbcontext
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -53,7 +55,9 @@ func (db *DB) Transactional(ctx context.Context, f func(ctx context.Context) err
 			_ = tx.Rollback()
 			panic(p)
 		} else if err != nil {
-			_ = tx.Rollback()
+			if rbErr := tx.Rollback(); rbErr != nil {
+				fmt.Fprintf(os.Stderr, "dbcontext: failed to rollback transaction: %v\n", rbErr)
+			}
 		} else {
 			err = tx.Commit()
 		}
@@ -76,9 +80,13 @@ func (db *DB) TransactionHandler() func(http.Handler) http.Handler {
 			panicked := true
 			defer func() {
 				if panicked {
-					_ = tx.Rollback()
+					if rbErr := tx.Rollback(); rbErr != nil {
+						fmt.Fprintf(os.Stderr, "dbcontext: failed to rollback transaction: %v\n", rbErr)
+					}
 				} else {
-					_ = tx.Commit()
+					if err := tx.Commit(); err != nil {
+						fmt.Fprintf(os.Stderr, "dbcontext: failed to commit transaction: %v\n", err)
+					}
 				}
 			}()
 			ctx := context.WithValue(r.Context(), txKey, tx)
