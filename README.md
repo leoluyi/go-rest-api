@@ -93,11 +93,15 @@ Each handler is annotated individually with `@Summary`, `@Param`, `@Success`, `@
 // @name Authorization
 ```
 
-Protected endpoints reference it with `// @Security BearerAuth`. The Swagger UI is served at `/v1/swagger/` using the `/*` wildcard pattern required by chi:
+Protected endpoints reference it with `// @Security BearerAuth`. The Swagger UI is served under the path derived from the `@BasePath` annotation:
 
 ```go
 r.Get("/swagger/*", httpSwagger.Handler())
 ```
+
+**Versioning in Swagger UI:** `docs.SwaggerInfo.Version` is overwritten at startup with the build-time `Version` variable (injected via ldflags), so the Swagger UI always shows the real binary version rather than the static placeholder in the generated docs.
+
+**API route prefix:** The `@BasePath` annotation (e.g. `// @BasePath /v1`) is the single source of truth for the versioned route prefix. `main.go` reads `docs.SwaggerInfo.BasePath` at startup and passes it to the router, so changing `@BasePath` and regenerating docs automatically updates the live routes on the next build — no code change needed.
 
 Regenerate the spec after changing annotations:
 

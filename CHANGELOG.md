@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- `Version` in `cmd/server/main.go` now defaults to `"dev"`; the Makefile's `git describe --tags` ldflags injection is the sole owner of the real version at build time. Makefile fallback also changed from `"1.0.0"` to `"dev"` for consistency
+- Swagger UI version now reflects the build-time `Version` variable: `docs.SwaggerInfo.Version` is overwritten at startup via `docs.SwaggerInfo.Version = Version` instead of relying on the static value embedded by `swag init`
+- API route prefix (`/v1`) is now derived from `docs.SwaggerInfo.BasePath` (populated by the `@BasePath` annotation) instead of being hardcoded in `buildHandler`; the `@BasePath` annotation is the single source of truth for the versioned route prefix
+
+### Fixed
+- Corrected `.gitignore` pattern for the server binary from `./server` (invalid) to `/server` (rooted)
+
 ## [v2.7.0] - 2026-02-20
 
 ### Added
