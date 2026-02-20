@@ -46,7 +46,7 @@ hs.Shutdown(ctx)
 
 ### Staged Dockerfile
 
-`cmd/server/Dockerfile` uses a two-stage build. The first stage compiles the binary in a full Go image; the second stage copies only the binary and config files into a minimal Alpine image. The runtime image runs as a non-root user (`app`) and contains no shell, no package manager, and no build tooling.
+`cmd/server/Dockerfile` uses a two-stage build. The build stage uses `registry.suse.com/bci/golang:1.24`; the runtime stage uses `registry.suse.com/bci/bci-micro` — a SUSE BCI distroless-style image with no shell and no package manager. The binary and config files are copied in with `--chown=65532:65532` and the container runs as UID/GID `65532:65532` (non-root).
 
 ### Embedded database migrations
 

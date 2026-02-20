@@ -1,6 +1,4 @@
-FROM golang:1.24-alpine AS build
-
-RUN apk add --no-cache ca-certificates
+FROM registry.suse.com/bci/golang:1.24 AS build
 
 WORKDIR /app
 
@@ -14,16 +12,12 @@ ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.Version=${VERSION}" -a -o server ./cmd/server
 
 
-FROM alpine:3.21
-
-RUN apk --no-cache add ca-certificates && \
-    addgroup -S app && adduser -S app -G app
+FROM registry.suse.com/bci/bci-micro:latest
 
 WORKDIR /app/
-COPY --from=build /app/server .
-COPY --from=build /app/config/*.yml ./config/
-RUN chown -R app:app /app
+COPY --from=build --chown=65532:65532 /app/server .
+COPY --from=build --chown=65532:65532 /app/config/*.yml ./config/
 
-USER app
+USER 65532:65532
 
 CMD ["./server"]

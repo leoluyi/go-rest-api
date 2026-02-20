@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v2.3.0] - 2026-02-21
+
+### Changed
+- Replaced `golang:1.24-alpine` build image with `registry.suse.com/bci/golang:1.24`
+- Replaced `alpine:3.21` runtime image with `registry.suse.com/bci/bci-micro:latest` (SUSE BCI distroless-style image — no shell, no package manager)
+- Runtime container now runs as UID/GID `65532:65532` (non-root, no `/etc/passwd` dependency)
+- Removed `RUN apk add ca-certificates` from build stage (BCI golang image includes CA certificates)
+- Removed `addgroup`/`adduser` and `chown` RUN layers from runtime stage; ownership set via `COPY --chown`
+
 ## [v2.2.0] - 2026-02-21
 
 ### Added
@@ -88,7 +97,8 @@ Initial release (upstream: [qiangxue/go-rest-api](https://github.com/qiangxue/go
 - Graceful shutdown
 - Full test coverage with mock-based unit tests
 
-[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.3.0...HEAD
+[v2.3.0]: https://github.com/leoluyi/go-api-template/compare/v2.2.0...v2.3.0
 [v2.2.0]: https://github.com/leoluyi/go-api-template/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/leoluyi/go-api-template/compare/v2.0.0...v2.1.0
 [v2.0.0]: https://github.com/leoluyi/go-api-template/compare/v1.0.1...v2.0.0
