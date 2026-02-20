@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v2.4.0] - 2026-02-21
+
+### Changed
+- Updated CI PostgreSQL service image from `postgres:10.8` to `postgres:17-alpine`
+- Updated CI Go version from 1.13 to 1.24
+- Updated `actions/checkout` from v1 to v4
+- Updated `actions/setup-go` from v1 to v5
+- Updated `codecov/codecov-action` from v1 to v5
+- Removed manual `go get` steps for deprecated tools (`golint`, `goveralls`, `cover`)
+
 ## [v2.3.0] - 2026-02-21
 
 ### Changed
@@ -97,7 +107,8 @@ Initial release (upstream: [qiangxue/go-rest-api](https://github.com/qiangxue/go
 - Graceful shutdown
 - Full test coverage with mock-based unit tests
 
-[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.4.0...HEAD
+[v2.4.0]: https://github.com/leoluyi/go-api-template/compare/v2.3.0...v2.4.0
 [v2.3.0]: https://github.com/leoluyi/go-api-template/compare/v2.2.0...v2.3.0
 [v2.2.0]: https://github.com/leoluyi/go-api-template/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/leoluyi/go-api-template/compare/v2.0.0...v2.1.0

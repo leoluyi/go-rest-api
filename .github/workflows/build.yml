@@ -8,7 +8,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:10.8
+        image: postgres:17-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -19,31 +19,13 @@ jobs:
 
     steps:
 
-      - name: Set up Go 1.13
-        uses: actions/setup-go@v1
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.24
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.13
-        id: go
-
-      - name: Set up path
-        run: |
-          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-        shell: bash
-
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v1
-
-      - name: Get dependencies
-        run: |
-          go mod download
-          go mod verify
-          go get golang.org/x/tools/cmd/cover
-          go get github.com/mattn/goveralls
-          go get golang.org/x/lint/golint
-
-      - name: Run go lint
-        run: make lint
+          go-version: "1.24"
 
       - name: Build
         run: make build
@@ -56,7 +38,7 @@ jobs:
           make test-cover
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage-all.out
+          files: ./coverage-all.out
