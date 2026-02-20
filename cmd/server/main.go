@@ -71,6 +71,9 @@ func main() {
 		logger.Error(err)
 		os.Exit(-1)
 	}
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
 	defer func() {
 		if err := db.Close(); err != nil {
 			logger.Error(err)
@@ -148,7 +151,7 @@ func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.
 		r.Get("/swagger/*", httpSwagger.Handler())
 
 		authHandler := auth.Handler(cfg.JWTSigningKey)
-		auth.RegisterHandlers(r, auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, logger), logger)
+		auth.RegisterHandlers(r, auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, cfg.AuthUsername, cfg.AuthPassword, logger), logger)
 		album.RegisterHandlers(r, album.NewService(album.NewRepository(db, logger), logger), authHandler, logger)
 	})
 

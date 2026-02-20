@@ -47,7 +47,7 @@ func CurrentUser(ctx context.Context) Identity {
 func MockAuthHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "TEST" {
-			errors.RespondWithError(w, errors.Unauthorized(""))
+			errors.RespondWithError(w, r, errors.Unauthorized(""))
 			return
 		}
 		ctx := WithUser(r.Context(), "100", "Tester")

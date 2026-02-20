@@ -94,12 +94,21 @@ func WithRequest(ctx context.Context, req *http.Request) context.Context {
 	return ctx
 }
 
+// GetRequestID returns the request ID stored in the context.
+// Returns an empty string if no request ID is found.
+func GetRequestID(ctx context.Context) string {
+	if id, ok := ctx.Value(requestIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
+
 // getCorrelationID extracts the correlation ID from the HTTP request
 func getCorrelationID(req *http.Request) string {
 	return req.Header.Get("X-Correlation-ID")
 }
 
-// getRequestID extracts the correlation ID from the HTTP request
+// getRequestID extracts the request ID from the HTTP request
 func getRequestID(req *http.Request) string {
 	return req.Header.Get("X-Request-ID")
 }

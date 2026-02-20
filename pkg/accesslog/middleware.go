@@ -32,6 +32,10 @@ func Handler(logger log.Logger) func(next http.Handler) http.Handler {
 			start := time.Now()
 			rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 			ctx := log.WithRequest(r.Context(), r)
+			// Propagate the request ID to the client via response header.
+			if id := log.GetRequestID(ctx); id != "" {
+				w.Header().Set("X-Request-ID", id)
+			}
 			next.ServeHTTP(rw, r.WithContext(ctx))
 			logger.With(ctx, "duration", time.Since(start).Milliseconds(), "status", rw.status).
 				Infof("%s %s %s %d %d", r.Method, r.URL.Path, r.Proto, rw.status, rw.bytesWritten)

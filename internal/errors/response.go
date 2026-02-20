@@ -2,16 +2,19 @@ package errors
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
+	pkglog "github.com/leoluyi/go-api-template/pkg/log"
 )
 
 // ErrorResponse is the response that represents an error.
 type ErrorResponse struct {
-	Status  int         `json:"status"`
-	Message string      `json:"message"`
-	Details interface{} `json:"details,omitempty"`
+	Status    int         `json:"status"`
+	Message   string      `json:"message"`
+	RequestID string      `json:"request_id,omitempty"`
+	Details   interface{} `json:"details,omitempty"`
 }
 
 // Error is required by the error interface.
@@ -104,11 +107,15 @@ func InvalidInput(errs validator.ValidationErrors) ErrorResponse {
 func RespondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(data)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("errors: failed to encode JSON response: %v", err)
+	}
 }
 
-// RespondWithError writes a JSON error response derived from the given error.
-func RespondWithError(w http.ResponseWriter, err error) {
+// RespondWithError writes a JSON error response derived from the given error,
+// including the request ID from the request context for client-side correlation.
+func RespondWithError(w http.ResponseWriter, r *http.Request, err error) {
 	res := buildErrorResponse(err)
+	res.RequestID = pkglog.GetRequestID(r.Context())
 	RespondJSON(w, res.Status, res)
 }
