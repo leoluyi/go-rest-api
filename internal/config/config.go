@@ -30,6 +30,9 @@ type Config struct {
 	AuthUsername string `yaml:"auth_username" env:"AUTH_USERNAME,secret" validate:"required"`
 	// authentication password. required. Override with APP_AUTH_PASSWORD env var in production.
 	AuthPassword string `yaml:"auth_password" env:"AUTH_PASSWORD,secret" validate:"required"`
+	// CORSAllowedOrigins is the list of origins allowed for cross-origin requests.
+	// Use ["*"] for development only. In production set specific origins, e.g. ["https://example.com"].
+	CORSAllowedOrigins []string `yaml:"cors_allowed_origins"`
 }
 
 // Validate validates the application configuration.

@@ -142,7 +142,12 @@ func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.
 		accesslog.Handler(logger),
 		errors.Handler(logger),
 		middleware.AllowContentType("application/json"),
-		cors.AllowAll().Handler,
+		cors.New(cors.Options{
+			AllowedOrigins: cfg.CORSAllowedOrigins,
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders: []string{"Authorization", "Content-Type"},
+			MaxAge:         300,
+		}).Handler,
 	)
 
 	healthcheck.RegisterHandlers(router, Version)

@@ -3,3 +3,6 @@ jwt_signing_key: "LxsKJywDL5O5PvgODZhBH12KE6k2yL8E"
 # Override with APP_AUTH_USERNAME and APP_AUTH_PASSWORD env vars in production.
 auth_username: "demo"
 auth_password: "changeme"
+# Development only — restrict to specific origins in production.
+cors_allowed_origins:
+  - "*"
