@@ -17,6 +17,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Replaced backtick command substitution with `$$()` in `run-restart`
 - Dropped `-t` from `docker exec` in `testdata` target to allow non-TTY execution (e.g. CI)
 - Added help comment to `generate-docs` target so it appears in `make help`
+- Fixed `/swagger*` route to `/swagger/*` for correct chi wildcard sub-path matching
+- Updated Swagger `@host` to `localhost:8080` and replaced placeholder title/description
+- Added `BearerAuth` security definition to Swagger spec
+- Moved swag annotations from `RegisterHandlers` onto individual handler functions with proper `@Param`, `@Success`, `@Failure`, and `@Security` tags
+- Fixed login route annotation from `/login/{id}` to `/login`
+- Extracted anonymous login structs to named `LoginRequest` and `LoginResponse` types
+- Upgraded `swaggo/swag` to v1.16.6 and `swaggo/http-swagger` to v1.3.4 to match swag CLI; regenerated docs
 
 ## [v2.0.0] - 2026-02-21
 
