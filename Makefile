@@ -71,14 +71,12 @@ version: ## display the version of the API server
 
 .PHONY: db-start
 db-start: ## start the database server
-	@mkdir -p testdata/postgres
 	docker start postgres &>/dev/null || docker run -d --rm \
 	  --name postgres \
 	  -e POSTGRES_DB=go_restful \
 	  -e POSTGRES_PASSWORD=postgres \
 	  -p 5432:5432 \
 	  -v $(shell pwd)/testdata:/testdata \
-	  -v $(shell pwd)/testdata/postgres:/var/lib/postgresql/data \
 	  postgres:14.10
 
 .PHONY: db-stop

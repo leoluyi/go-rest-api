@@ -113,16 +113,6 @@ Routes are registered in `cmd/server/main.go`. The chi router is used with middl
 
 Protected routes under `/v1/` require a `Bearer` JWT token. The JWT middleware is in `internal/auth/middleware.go`.
 
-## Known Issues
-
-**`make db-start` exits immediately**: The Makefile mounts `testdata/postgres` as the PostgreSQL data directory. If that directory contains stale data from a previous run, the container exits on startup. Work around it by running Docker directly:
-
-```bash
-docker run -d --name postgres \
-  -e POSTGRES_DB=go_restful -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 postgres:14.10
-```
-
 ## Testing Patterns
 
 - Unit tests mock the layer below via interfaces (no real DB required)
