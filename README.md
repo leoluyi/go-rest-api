@@ -156,7 +156,7 @@ At this time, you have a RESTful API server running at `http://127.0.0.1:8080`. 
 Try the URL `http://localhost:8080/healthcheck` in a browser, and you should see a JSON response like:
 
 ```json
-{"status":"ok","version":"1.0.0","db":"ok"}
+{"status":"ok","version":"2.7.0","db":"ok"}
 ```
 
 If you have `cURL` or some API client tools (e.g. [Postman](https://www.getpostman.com/)), you may try the following
