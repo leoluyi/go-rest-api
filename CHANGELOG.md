@@ -6,13 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Changed
-- `Version` in `cmd/server/main.go` now defaults to `"dev"`; the Makefile's `git describe --tags` ldflags injection is the sole owner of the real version at build time. Makefile fallback also changed from `"1.0.0"` to `"dev"` for consistency
-- Swagger UI version now reflects the build-time `Version` variable: `docs.SwaggerInfo.Version` is overwritten at startup via `docs.SwaggerInfo.Version = Version` instead of relying on the static value embedded by `swag init`
-- API route prefix (`/v1`) is now derived from `docs.SwaggerInfo.BasePath` (populated by the `@BasePath` annotation) instead of being hardcoded in `buildHandler`; the `@BasePath` annotation is the single source of truth for the versioned route prefix
+## [v2.8.0] - 2026-02-21
 
 ### Fixed
-- Corrected `.gitignore` pattern for the server binary from `./server` (invalid) to `/server` (rooted)
+- **`CurrentUser()` always returned nil** (`internal/auth/middleware.go`): the JWT `Handler()` middleware only verified and authenticated the token but never propagated the `id`/`name` claims into the auth context key that `CurrentUser()` reads. An `enrich` step is now chained after `jwtauth.Authenticator` to call `WithUser()` with the JWT claims, making `CurrentUser()` work correctly in all downstream handlers
+- `entity.User` struct was missing `json` and `db` struct tags, preventing correct JSON serialisation and sqlx row scanning
+
+### Added
+- HTTP server timeouts: `ReadTimeout` (10 s), `WriteTimeout` (30 s), `IdleTimeout` (120 s) — previously unset, leaving the server vulnerable to slow-client attacks
+- `middleware.RequestSize(1 MB)` middleware rejects oversized request bodies with HTTP 413 before they reach handlers
+- Configurable graceful shutdown timeout via `shutdown_timeout_seconds` config field / `APP_SHUTDOWN_TIMEOUT_SECONDS` env var (default 10 s, was hardcoded)
+- Configurable database connection pool: `db_max_open_conns`, `db_max_idle_conns`, `db_conn_max_lifetime_minutes` config fields (previously hardcoded in `main.go`)
+- `make vuln` target — runs `govulncheck ./...` to scan for known CVEs in dependencies
+- `make install-tools` target — installs `govulncheck` and `swag`
+- `make pre-commit` target — runs `fmt`, `lint`, `test`, and `vuln` in sequence
+- `prod.yml` and `qa.yml` populated with non-secret defaults and documentation of required `APP_*` env vars (were previously empty files)
+
+### Changed
+- JWT token expiration default reduced from **72 h to 24 h** to limit the exposure window of stolen tokens
+- `gopkg.in/yaml.v2` replaced with `gopkg.in/yaml.v3` (direct dependency); yaml.v2 removed
+- Env-var loader now uses a no-op log function instead of `logger.Infof` to prevent secret values from appearing in logs during startup
+- `make build` now passes `-trimpath` for reproducible builds; `LDFLAGS` updated to include `-s -w` to strip debug symbols from the production binary
+- `-race` flag added to `make test` for data-race detection
+- `postgres:18-alpine` reverted to `postgres:17-alpine` in `make db-start` (18 does not exist)
+- `local.yml` updated with new optional config fields for documentation purposes
+
+### Database
+- `DROP TABLE album` in init rollback migration changed to `DROP TABLE IF EXISTS album CASCADE` to handle foreign-key presence without error
+- Migration `20260220000000`: added `DEFAULT CURRENT_TIMESTAMP` on `created_at` and `updated_at` so the DB supplies a value when the application omits one
+- Migration `20260220000000`: added `UNIQUE` constraint on `album.name` to enforce uniqueness at the schema level
+- Migration `20260220000000`: added `CHECK (updated_at >= created_at)` constraint to prevent logically inconsistent timestamps
+- Migration `20260220000000`: added `idx_album_name` index to support filter and search queries on name
+- Rollback migration `20260220000000` updated to cleanly revert all new additions
+
+### Tests
+- `internal/test/db.go`: replaced unsynchronised `if db != nil` global with `sync.Once` + stored error to prevent data races when multiple test packages initialise the connection concurrently
+- `internal/test/db.go`: DB helper now reads `APP_DSN` environment variable first, falling back to `config/local.yml`, so integration tests work in CI without a config file on disk
+- `internal/test/db.go`: `ResetTables` now issues `TRUNCATE ... CASCADE` to safely reset tables that have foreign-key relationships
+- `internal/test/mock.go`: `MockRouter` now includes `metrics.Middleware` to match the production middleware stack
 
 ## [v2.7.0] - 2026-02-20
 
@@ -159,7 +190,8 @@ Initial release (upstream: [qiangxue/go-rest-api](https://github.com/qiangxue/go
 - Graceful shutdown
 - Full test coverage with mock-based unit tests
 
-[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.7.0...HEAD
+[Unreleased]: https://github.com/leoluyi/go-api-template/compare/v2.8.0...HEAD
+[v2.8.0]: https://github.com/leoluyi/go-api-template/compare/v2.7.0...v2.8.0
 [v2.7.0]: https://github.com/leoluyi/go-api-template/compare/v2.6.0...v2.7.0
 [v2.6.0]: https://github.com/leoluyi/go-api-template/compare/v2.5.0...v2.6.0
 [v2.5.0]: https://github.com/leoluyi/go-api-template/compare/v2.4.0...v2.5.0
