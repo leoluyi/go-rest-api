@@ -7,7 +7,7 @@ LDFLAGS := -ldflags "-X main.Version=${VERSION}"
 
 CONFIG_FILE ?= ./config/local.yml
 APP_DSN ?= $(shell sed -n 's/^dsn:[[:space:]]*"\(.*\)"/\1/p' $(CONFIG_FILE))
-MIGRATE := docker run --rm --name migrate -v $(shell pwd)/migrations:/migrations --network host migrate/migrate:v4.16.2 -path=/migrations/ -database "$(APP_DSN)"
+MIGRATE := docker run --rm --name migrate -v $(shell pwd)/migrations:/migrations --network host migrate/migrate:v4.19.1 -path=/migrations/ -database "$(APP_DSN)"
 
 PID_FILE := './.pid'
 FSWATCH_FILE := './fswatch.cfg'
