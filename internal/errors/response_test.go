@@ -1,10 +1,14 @@
 package errors
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/go-playground/validator/v10"
+	pkglog "github.com/leoluyi/go-api-template/pkg/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,4 +80,66 @@ func TestInvalidInput(t *testing.T) {
 	assert.True(t, ok)
 	assert.Len(t, details, 1)
 	assert.Equal(t, "Name", details[0].Field)
+}
+
+func TestRespondJSON(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RespondJSON(rec, http.StatusCreated, map[string]string{"key": "value"})
+
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.Equal(t, "application/json; charset=utf-8", rec.Header().Get("Content-Type"))
+
+	var body map[string]string
+	err := json.Unmarshal(rec.Body.Bytes(), &body)
+	assert.NoError(t, err)
+	assert.Equal(t, "value", body["key"])
+}
+
+func TestRespondWithError(t *testing.T) {
+	t.Run("ErrorResponse sets correct status and body", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/", nil)
+		rec := httptest.NewRecorder()
+		RespondWithError(rec, req, NotFound("item not found"))
+
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+
+		var body map[string]interface{}
+		require := assert.New(t)
+		require.NoError(json.Unmarshal(rec.Body.Bytes(), &body))
+		assert.Equal(t, float64(http.StatusNotFound), body["status"])
+		assert.Equal(t, "item not found", body["message"])
+	})
+
+	t.Run("generic error becomes 500", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/", nil)
+		rec := httptest.NewRecorder()
+		RespondWithError(rec, req, fmt.Errorf("unexpected internal error"))
+
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	})
+
+	t.Run("attaches request ID from context", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/", nil)
+		req.Header.Set("X-Request-ID", "test-req-id-123")
+		ctx := pkglog.WithRequest(req.Context(), req)
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+		RespondWithError(rec, req, NotFound(""))
+
+		var body map[string]interface{}
+		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+		assert.Equal(t, "test-req-id-123", body["request_id"])
+	})
+
+	t.Run("no request ID when context is empty", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/", nil)
+		rec := httptest.NewRecorder()
+		RespondWithError(rec, req, NotFound(""))
+
+		var body map[string]interface{}
+		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+		_, hasRequestID := body["request_id"]
+		assert.False(t, hasRequestID, "request_id should be omitted when not set in context")
+	})
 }
