@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Go RESTful API starter kit demonstrating clean architecture with PostgreSQL.
 
-Module: `github.com/qiangxue/go-rest-api`
+Module: `github.com/leoluyi/go-api-template`
 
 ## Commands
 
@@ -85,6 +85,12 @@ internal/<feature>/
 ```
 
 Shared domain models live in `internal/entity/`. Cross-cutting packages (logging, pagination, DB context) live in `pkg/`.
+
+### Directory conventions
+
+- **`internal/`** — compiler-enforced: only importable by code within this module. Use for application-specific logic (feature handlers, entities, auth, error types, test helpers) that must not become a public API.
+- **`pkg/`** — convention for reusable library code stable enough to be imported externally. Packages here carry no business logic and have no dependency on `internal/`.
+- **`vendor/`** — not used. Dependencies are managed via Go modules (`go.mod`/`go.sum`). Run `go mod vendor` to opt into vendoring for offline or reproducible builds.
 
 **Dependency direction:** `api` → `service` → `repository` → `entity`. Each layer depends on interfaces, not concrete types — enabling mock-based unit testing.
 
