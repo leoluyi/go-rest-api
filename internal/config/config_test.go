@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/leoluyi/go-api-template/pkg/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -76,8 +75,6 @@ func TestConfig_Validate(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	logger, _ := log.NewForTest()
-
 	t.Run("valid config file with defaults", func(t *testing.T) {
 		f := writeTempConfig(t, `
 dsn: "postgres://localhost/test"
@@ -85,7 +82,7 @@ jwt_signing_key: "`+validKey+`"
 auth_username: "admin"
 auth_password: "secret"
 `)
-		cfg, err := Load(f, logger)
+		cfg, err := Load(f)
 		require.NoError(t, err)
 		assert.Equal(t, defaultServerPort, cfg.ServerPort)
 		assert.Equal(t, defaultJWTExpirationHours, cfg.JWTExpiration)
@@ -102,7 +99,7 @@ auth_password: "secret"
 server_port: 9090
 jwt_expiration: 24
 `)
-		cfg, err := Load(f, logger)
+		cfg, err := Load(f)
 		require.NoError(t, err)
 		assert.Equal(t, 9090, cfg.ServerPort)
 		assert.Equal(t, 24, cfg.JWTExpiration)
@@ -117,19 +114,19 @@ auth_password: "secret"
 server_port: 8080
 `)
 		t.Setenv("APP_SERVER_PORT", "7070")
-		cfg, err := Load(f, logger)
+		cfg, err := Load(f)
 		require.NoError(t, err)
 		assert.Equal(t, 7070, cfg.ServerPort)
 	})
 
 	t.Run("missing file returns error", func(t *testing.T) {
-		_, err := Load("/nonexistent/path/config.yml", logger)
+		_, err := Load("/nonexistent/path/config.yml")
 		assert.Error(t, err)
 	})
 
 	t.Run("invalid YAML returns error", func(t *testing.T) {
 		f := writeTempConfig(t, `{invalid yaml: [`)
-		_, err := Load(f, logger)
+		_, err := Load(f)
 		assert.Error(t, err)
 	})
 
@@ -140,7 +137,7 @@ jwt_signing_key: "short"
 auth_username: "admin"
 auth_password: "secret"
 `)
-		_, err := Load(f, logger)
+		_, err := Load(f)
 		assert.Error(t, err)
 	})
 }
