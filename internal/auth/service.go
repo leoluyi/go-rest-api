@@ -54,7 +54,7 @@ func (s service) authenticate(ctx context.Context, username, password string) Id
 
 	if username == s.username && password == s.password {
 		logger.Infof("authentication successful")
-		return entity.User{ID: "100", Name: username}
+		return entity.User{ID: username, Name: username}
 	}
 
 	logger.Infof("authentication failed")

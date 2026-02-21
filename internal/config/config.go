@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/qiangxue/go-env"
-	"github.com/leoluyi/go-api-template/pkg/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -53,7 +52,7 @@ func (c Config) Validate() error {
 }
 
 // Load returns an application configuration which is populated from the given configuration file and environment variables.
-func Load(file string, logger log.Logger) (*Config, error) {
+func Load(file string) (*Config, error) {
 	// default config
 	c := Config{
 		ServerPort:               defaultServerPort,

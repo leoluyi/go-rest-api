@@ -12,7 +12,6 @@ import (
 	_ "github.com/lib/pq" // initialize postgresql for test
 	"github.com/leoluyi/go-api-template/internal/config"
 	"github.com/leoluyi/go-api-template/pkg/dbcontext"
-	"github.com/leoluyi/go-api-template/pkg/log"
 )
 
 var (
@@ -29,9 +28,8 @@ func DB(t *testing.T) *dbcontext.DB {
 	testDBMu.Do(func() {
 		dsn := os.Getenv("APP_DSN")
 		if dsn == "" {
-			logger, _ := log.NewForTest()
 			dir := getSourcePath()
-			cfg, err := config.Load(dir+"/../../config/local.yml", logger)
+			cfg, err := config.Load(dir + "/../../config/local.yml")
 			if err != nil {
 				testDBErr = err
 				return
