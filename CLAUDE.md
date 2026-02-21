@@ -115,9 +115,16 @@ All config fields can be overridden with `APP_`-prefixed environment variables (
 
 ## Routing
 
-Routes are registered in `cmd/server/main.go`. The chi router is used with middleware stacked in this order: access log → CORS → error handler → JWT auth (on protected routes).
+Routes are registered in `cmd/server/main.go`. The chi router applies global middleware in this order:
 
-Protected routes under `/v1/` require a `Bearer` JWT token. The JWT middleware is in `internal/auth/middleware.go`.
+1. `accesslog.Handler` — logs method, path, status, duration; sets `X-Request-ID`
+2. `errors.Handler` — recovers panics, maps errors to structured JSON responses
+3. `metrics.Middleware` — records Prometheus request count and latency histograms
+4. `middleware.RequestSize(1 MB)` — rejects bodies larger than 1 MB with HTTP 413
+5. `middleware.AllowContentType("application/json")` — rejects non-JSON content types
+6. `cors.Handler` — enforces `CORSAllowedOrigins` from config
+
+JWT auth is applied per-route inside the `/v1/` sub-router (not globally). Protected routes require a `Bearer` token. The JWT middleware is in `internal/auth/middleware.go`.
 
 ## Testing Patterns
 
