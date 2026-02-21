@@ -3,7 +3,7 @@ SHELL := /bin/bash
 MODULE = $(shell go list -m)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || echo "dev")
 PACKAGES := $(shell go list ./... | grep -v /vendor/)
-LDFLAGS := -ldflags "-X main.Version=${VERSION}"
+LDFLAGS := -ldflags "-s -w -X main.Version=${VERSION}"
 
 CONFIG_FILE ?= ./config/local.yml
 APP_DSN ?= $(shell sed -n 's/^dsn:[[:space:]]*"\(.*\)"/\1/p' $(CONFIG_FILE))
@@ -24,7 +24,7 @@ help: ## help information about make commands
 test: ## run unit tests
 	@echo "mode: count" > coverage-all.out
 	@$(foreach pkg,$(PACKAGES), \
-		go test -p=1 -cover -covermode=count -coverprofile=coverage.out ${pkg}; \
+		go test -p=1 -race -cover -covermode=count -coverprofile=coverage.out ${pkg}; \
 		tail -n +2 coverage.out >> coverage-all.out;)
 
 .PHONY: test-cover
@@ -58,7 +58,7 @@ run-live: ## run the API server with live reload support (requires fswatch)
 
 .PHONY: build
 build:  ## build the API server binary
-	CGO_ENABLED=0 go build ${LDFLAGS} -a -o server $(MODULE)/cmd/server
+	CGO_ENABLED=0 go build -trimpath ${LDFLAGS} -a -o server $(MODULE)/cmd/server
 
 .PHONY: build-docker
 build-docker: ## build the API server as a docker image
@@ -81,7 +81,7 @@ db-start: ## start the database server
 	  -e POSTGRES_PASSWORD=postgres \
 	  -p 5432:5432 \
 	  -v $(shell pwd)/testdata:/testdata \
-	  postgres:18-alpine
+	  postgres:17-alpine
 	@until docker exec postgres pg_isready -U postgres -q 2>/dev/null; do sleep 1; done
 
 .PHONY: db-stop
@@ -127,3 +127,15 @@ migrate-reset: ## reset database and re-run all migrations
 	@$(MIGRATE) drop -f
 	@echo "Running all database migrations..."
 	@$(MIGRATE) up
+
+.PHONY: vuln
+vuln: ## scan for known vulnerabilities in dependencies (requires govulncheck)
+	govulncheck ./...
+
+.PHONY: install-tools
+install-tools: ## install development tools (govulncheck, swag)
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install github.com/swaggo/swag/cmd/swag@latest
+
+.PHONY: pre-commit
+pre-commit: fmt lint test vuln ## run all checks before committing

@@ -6,3 +6,9 @@ auth_password: "changeme"
 # Development only — restrict to specific origins in production.
 cors_allowed_origins:
   - "*"
+# Database connection pool (defaults shown — override per environment).
+db_max_open_conns: 25
+db_max_idle_conns: 5
+db_conn_max_lifetime_minutes: 5
+# Graceful shutdown timeout in seconds.
+shutdown_timeout_seconds: 10

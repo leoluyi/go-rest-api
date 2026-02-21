@@ -14,14 +14,24 @@ type contextKey int
 const userKey contextKey = iota
 
 // Handler returns a JWT-based authentication middleware.
-// It combines token verification and authentication: requests with a missing
-// or invalid token are rejected with 401.
+// It combines token verification, authentication, and user-context enrichment:
+// requests with a missing or invalid token are rejected with 401; valid tokens
+// have their "id" and "name" claims written into the request context so that
+// CurrentUser() works for downstream handlers.
 func Handler(JWTSigningKey string) func(http.Handler) http.Handler {
 	ta := jwtauth.New("HS256", []byte(JWTSigningKey), nil)
 	verifier := jwtauth.Verifier(ta)
 	authenticator := jwtauth.Authenticator(ta)
+	enrich := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, claims, _ := jwtauth.FromContext(r.Context())
+			id, _ := claims["id"].(string)
+			name, _ := claims["name"].(string)
+			next.ServeHTTP(w, r.WithContext(WithUser(r.Context(), id, name)))
+		})
+	}
 	return func(next http.Handler) http.Handler {
-		return verifier(authenticator(next))
+		return verifier(authenticator(enrich(next)))
 	}
 }
 
