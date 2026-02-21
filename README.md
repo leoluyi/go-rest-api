@@ -227,6 +227,20 @@ replacement of the string `github.com/leoluyi/go-api-template` in all of project
 The top level directories `cmd`, `internal`, `pkg` are commonly found in other popular Go projects, as explained in
 [Standard Go Project Layout](https://github.com/golang-standards/project-layout).
 
+**`internal/`** — enforced by the Go compiler. Code inside `internal/` can only be imported by code rooted at the
+parent of the `internal/` directory. For this project that means only packages within `github.com/leoluyi/go-api-template`
+can import it; no external module can. Use `internal/` for application-specific logic that must not leak as a public API:
+domain entities, feature handlers, authentication, error types, and test helpers all live here.
+
+**`pkg/`** — a convention (not compiler-enforced) for library code that is designed to be reusable and stable enough
+to be imported from outside the module. Packages here (logging, pagination, DB context, metrics, access-log middleware)
+carry no business logic and have no dependency on `internal/`. Moving a package from `internal/` to `pkg/` is a
+deliberate signal that its interface is considered stable.
+
+**`vendor/`** — this project does not use a `vendor/` directory; dependencies are managed exclusively through Go modules
+(`go.mod` / `go.sum`). If offline or reproducible builds are required, run `go mod vendor` to snapshot all dependencies
+into a `vendor/` directory; Go will then use that directory automatically on subsequent builds.
+
 Within `internal` and `pkg`, packages are structured by features in order to achieve the so-called
 [screaming architecture](https://blog.cleancoder.com/uncle-bob/2011/09/30/Screaming-Architecture.html). For example,
 the `album` directory contains the application logic related with the album feature.
