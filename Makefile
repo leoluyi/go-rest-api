@@ -22,9 +22,9 @@ help: ## help information about make commands
 
 .PHONY: test
 test: ## run unit tests
-	@echo "mode: count" > coverage-all.out
+	@echo "mode: atomic" > coverage-all.out
 	@$(foreach pkg,$(PACKAGES), \
-		go test -p=1 -race -cover -covermode=count -coverprofile=coverage.out ${pkg}; \
+		go test -p=1 -race -cover -covermode=atomic -coverprofile=coverage.out ${pkg}; \
 		tail -n +2 coverage.out >> coverage-all.out;)
 
 .PHONY: test-cover
