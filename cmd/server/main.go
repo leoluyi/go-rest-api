@@ -63,7 +63,7 @@ func main() {
 	logger := log.New().With(context.TODO(), "version", Version)
 
 	// load application configurations
-	cfg, err := config.Load(*flagConfig, logger)
+	cfg, err := config.Load(*flagConfig)
 	if err != nil {
 		logger.Errorf("failed to load application configuration: %s", err)
 		os.Exit(-1)
@@ -75,9 +75,9 @@ func main() {
 		logger.Error(err)
 		os.Exit(-1)
 	}
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetMaxOpenConns(cfg.DBMaxOpenConns)
+	db.SetMaxIdleConns(cfg.DBMaxIdleConns)
+	db.SetConnMaxLifetime(time.Duration(cfg.DBConnMaxLifetimeMinutes) * time.Minute)
 	defer func() {
 		if err := db.Close(); err != nil {
 			logger.Error(err)
@@ -93,16 +93,20 @@ func main() {
 	// build HTTP server
 	address := fmt.Sprintf(":%v", cfg.ServerPort)
 	hs := &http.Server{
-		Addr:    address,
-		Handler: buildHandler(logger, db, dbcontext.New(db), cfg, docs.SwaggerInfo.BasePath),
+		Addr:         address,
+		Handler:      buildHandler(logger, db, dbcontext.New(db), cfg, docs.SwaggerInfo.BasePath),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	// start the HTTP server with graceful shutdown
+	shutdownTimeout := time.Duration(cfg.ShutdownTimeoutSeconds) * time.Second
 	go func() {
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 		<-quit
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 		if err := hs.Shutdown(ctx); err != nil {
 			logger.Error(err)
@@ -147,6 +151,7 @@ func buildHandler(logger log.Logger, rawDB *sqlx.DB, db *dbcontext.DB, cfg *conf
 		accesslog.Handler(logger),
 		errors.Handler(logger),
 		metrics.Middleware,
+		middleware.RequestSize(1<<20), // 1 MB max request body
 		middleware.AllowContentType("application/json"),
 		cors.New(cors.Options{
 			AllowedOrigins: cfg.CORSAllowedOrigins,

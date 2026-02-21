@@ -1,0 +1,16 @@
+# QA configuration.
+# Do NOT commit secrets here. All sensitive values must be supplied via
+# APP_-prefixed environment variables (e.g. APP_DSN, APP_JWT_SIGNING_KEY).
+#
+# Required env vars:
+#   APP_DSN               — PostgreSQL DSN for the QA database
+#   APP_JWT_SIGNING_KEY   — at least 32-character random string
+#   APP_AUTH_USERNAME     — API basic-auth username
+#   APP_AUTH_PASSWORD     — API basic-auth password
+server_port: 8080
+cors_allowed_origins:
+  - "https://qa.example.com"
+db_max_open_conns: 10
+db_max_idle_conns: 3
+db_conn_max_lifetime_minutes: 5
+shutdown_timeout_seconds: 15

@@ -136,6 +136,12 @@ internal/<feature>/
 
 Shared domain models live in `internal/entity/`. Cross-cutting packages (logging, pagination, DB context) live in `pkg/`.
 
+### Directory conventions
+
+- **`internal/`** — compiler-enforced: only importable by code within this module. Use for application-specific logic (feature handlers, entities, auth, error types, test helpers) that must not become a public API.
+- **`pkg/`** — convention for reusable library code stable enough to be imported externally. Packages here carry no business logic and have no dependency on `internal/`.
+- **`vendor/`** — not used. Dependencies are managed via Go modules (`go.mod`/`go.sum`). Run `go mod vendor` to opt into vendoring for offline or reproducible builds.
+
 **Dependency direction:** `api` → `service` → `repository` → `entity`
 
 Each layer depends only on interfaces, not concrete types — this enables mock-based unit testing without a real database.
@@ -168,12 +174,13 @@ chi router
 
 ### Middleware Stack Order (in `buildHandler`)
 
-The order in `cmd/server/main.go:146` is:
-1. `accesslog.Handler` — logs every request with timing and request ID
-2. `errors.Handler` — panic recovery, maps errors to JSON responses
-3. `metrics.Middleware` — Prometheus counter and histogram
-4. `middleware.AllowContentType("application/json")` — rejects non-JSON bodies
-5. `cors.New(...).Handler` — CORS headers
+The order in `cmd/server/main.go` is:
+1. `accesslog.Handler` — logs method, path, status, duration; sets `X-Request-ID`
+2. `errors.Handler` — recovers panics, maps errors to structured JSON responses
+3. `metrics.Middleware` — records Prometheus request count and latency histograms
+4. `middleware.RequestSize(1 MB)` — rejects bodies larger than 1 MB with HTTP 413
+5. `middleware.AllowContentType("application/json")` — rejects non-JSON content types
+6. `cors.Handler` — enforces `CORSAllowedOrigins` from config
 
 ## API Endpoints
 

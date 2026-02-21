@@ -5,13 +5,16 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/qiangxue/go-env"
-	"github.com/leoluyi/go-api-template/pkg/log"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
-	defaultServerPort         = 8080
-	defaultJWTExpirationHours = 72
+	defaultServerPort               = 8080
+	defaultJWTExpirationHours       = 24
+	defaultDBMaxOpenConns           = 25
+	defaultDBMaxIdleConns           = 5
+	defaultDBConnMaxLifetimeMinutes = 5
+	defaultShutdownTimeoutSeconds   = 10
 )
 
 var validate = validator.New()
@@ -24,7 +27,7 @@ type Config struct {
 	DSN string `yaml:"dsn" env:"DSN,secret" validate:"required"`
 	// JWT signing key. required. Must be at least 32 characters for HS256.
 	JWTSigningKey string `yaml:"jwt_signing_key" env:"JWT_SIGNING_KEY,secret" validate:"required,min=32"`
-	// JWT expiration in hours. Defaults to 72 hours (3 days)
+	// JWT expiration in hours. Defaults to 24 hours.
 	JWTExpiration int `yaml:"jwt_expiration" env:"JWT_EXPIRATION"`
 	// authentication username. required. Override with APP_AUTH_USERNAME env var in production.
 	AuthUsername string `yaml:"auth_username" env:"AUTH_USERNAME,secret" validate:"required"`
@@ -33,6 +36,14 @@ type Config struct {
 	// CORSAllowedOrigins is the list of origins allowed for cross-origin requests.
 	// Use ["*"] for development only. In production set specific origins, e.g. ["https://example.com"].
 	CORSAllowedOrigins []string `yaml:"cors_allowed_origins"`
+	// DBMaxOpenConns sets the maximum number of open database connections. Defaults to 25.
+	DBMaxOpenConns int `yaml:"db_max_open_conns" env:"DB_MAX_OPEN_CONNS"`
+	// DBMaxIdleConns sets the maximum number of idle database connections. Defaults to 5.
+	DBMaxIdleConns int `yaml:"db_max_idle_conns" env:"DB_MAX_IDLE_CONNS"`
+	// DBConnMaxLifetimeMinutes sets the maximum lifetime of a database connection in minutes. Defaults to 5.
+	DBConnMaxLifetimeMinutes int `yaml:"db_conn_max_lifetime_minutes" env:"DB_CONN_MAX_LIFETIME_MINUTES"`
+	// ShutdownTimeoutSeconds is the graceful shutdown timeout in seconds. Defaults to 10.
+	ShutdownTimeoutSeconds int `yaml:"shutdown_timeout_seconds" env:"SHUTDOWN_TIMEOUT_SECONDS"`
 }
 
 // Validate validates the application configuration.
@@ -41,11 +52,15 @@ func (c Config) Validate() error {
 }
 
 // Load returns an application configuration which is populated from the given configuration file and environment variables.
-func Load(file string, logger log.Logger) (*Config, error) {
+func Load(file string) (*Config, error) {
 	// default config
 	c := Config{
-		ServerPort:    defaultServerPort,
-		JWTExpiration: defaultJWTExpirationHours,
+		ServerPort:               defaultServerPort,
+		JWTExpiration:            defaultJWTExpirationHours,
+		DBMaxOpenConns:           defaultDBMaxOpenConns,
+		DBMaxIdleConns:           defaultDBMaxIdleConns,
+		DBConnMaxLifetimeMinutes: defaultDBConnMaxLifetimeMinutes,
+		ShutdownTimeoutSeconds:   defaultShutdownTimeoutSeconds,
 	}
 
 	// load from YAML config file
@@ -58,7 +73,9 @@ func Load(file string, logger log.Logger) (*Config, error) {
 	}
 
 	// load from environment variables prefixed with "APP_"
-	if err = env.New("APP_", logger.Infof).Load(&c); err != nil {
+	// Use a no-op log function to prevent secret values from appearing in logs.
+	noop := func(string, ...interface{}) {}
+	if err = env.New("APP_", noop).Load(&c); err != nil {
 		return nil, err
 	}
 

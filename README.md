@@ -39,19 +39,21 @@ logger.Infof("server %v is running at %v", Version, address)
 
 ```makefile
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2>/dev/null || echo "dev")
-LDFLAGS := -ldflags "-X main.Version=${VERSION}"
+LDFLAGS := -ldflags "-s -w -X main.Version=${VERSION}"
 ```
+
+The `-s -w` flags strip the symbol table and DWARF debug info from the production binary, typically reducing its size by ~30%. The `-trimpath` flag (also added to `make build`) removes absolute file paths from the binary for reproducible builds.
 
 Tag a release with `git tag v2.8.0` and `make build` will embed `v2.8.0` in the binary automatically.
 
 ### Graceful exit
 
-The server listens for `SIGINT` and `SIGTERM` and gives in-flight requests up to 10 seconds to complete before shutting down:
+The server listens for `SIGINT` and `SIGTERM` and gives in-flight requests time to complete before shutting down. The timeout is configurable via `shutdown_timeout_seconds` in the config file (or `APP_SHUTDOWN_TIMEOUT_SECONDS` env var; default 10 s):
 
 ```go
 signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 <-quit
-ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 defer cancel()
 hs.Shutdown(ctx)
 ```
@@ -74,14 +76,15 @@ On startup, `main.go` runs all pending migrations via the `golang-migrate/migrat
 
 ### Custom middlewares
 
-Four custom middlewares are wired into the router in `cmd/server/main.go`:
+Five middlewares are wired into the router in `cmd/server/main.go`:
 
 | Middleware | Location | Purpose |
 |------------|----------|---------|
 | Access log | `pkg/accesslog` | Logs method, path, status, duration, and bytes; sets `X-Request-ID` response header |
 | Error handler | `internal/errors` | Recovers from panics and maps errors to structured JSON responses with `request_id` |
 | Metrics | `pkg/metrics` | Records `http_requests_total` and `http_request_duration_seconds` for Prometheus |
-| JWT auth | `internal/auth` | Verifies and authenticates Bearer tokens on protected routes |
+| Request size | `chi/middleware` | Rejects request bodies larger than 1 MB with HTTP 413 |
+| JWT auth | `internal/auth` | Verifies Bearer tokens and populates the user identity in the request context on protected routes |
 
 ### Swagger API documentation
 
@@ -267,6 +270,20 @@ replacement of the string `github.com/leoluyi/go-api-template` in all of project
 The top level directories `cmd`, `internal`, `pkg` are commonly found in other popular Go projects, as explained in
 [Standard Go Project Layout](https://github.com/golang-standards/project-layout).
 
+**`internal/`** — enforced by the Go compiler. Code inside `internal/` can only be imported by code rooted at the
+parent of the `internal/` directory. For this project that means only packages within `github.com/leoluyi/go-api-template`
+can import it; no external module can. Use `internal/` for application-specific logic that must not leak as a public API:
+domain entities, feature handlers, authentication, error types, and test helpers all live here.
+
+**`pkg/`** — a convention (not compiler-enforced) for library code that is designed to be reusable and stable enough
+to be imported from outside the module. Packages here (logging, pagination, DB context, metrics, access-log middleware)
+carry no business logic and have no dependency on `internal/`. Moving a package from `internal/` to `pkg/` is a
+deliberate signal that its interface is considered stable.
+
+**`vendor/`** — this project does not use a `vendor/` directory; dependencies are managed exclusively through Go modules
+(`go.mod` / `go.sum`). If offline or reproducible builds are required, run `go mod vendor` to snapshot all dependencies
+into a `vendor/` directory; Go will then use that directory automatically on subsequent builds.
+
 Within `internal` and `pkg`, packages are structured by features in order to achieve the so-called
 [screaming architecture](https://blog.cleancoder.com/uncle-bob/2011/09/30/Screaming-Architecture.html). For example,
 the `album` directory contains the application logic related with the album feature.
@@ -382,8 +399,12 @@ The following fields are optional:
 | Field | Env var | Default | Notes |
 |-------|---------|---------|-------|
 | `server_port` | `APP_SERVER_PORT` | `8080` | |
-| `jwt_expiration` | `APP_JWT_EXPIRATION` | `72` | Hours until token expires |
+| `jwt_expiration` | `APP_JWT_EXPIRATION` | `24` | Hours until token expires |
 | `cors_allowed_origins` | — | `[]` (none) | Set to `["*"]` for dev, specific origins for prod |
+| `db_max_open_conns` | `APP_DB_MAX_OPEN_CONNS` | `25` | Maximum open database connections |
+| `db_max_idle_conns` | `APP_DB_MAX_IDLE_CONNS` | `5` | Maximum idle database connections |
+| `db_conn_max_lifetime_minutes` | `APP_DB_CONN_MAX_LIFETIME_MINUTES` | `5` | Maximum connection lifetime in minutes |
+| `shutdown_timeout_seconds` | `APP_SHUTDOWN_TIMEOUT_SECONDS` | `10` | Graceful shutdown window in seconds |
 
 Do not keep secrets in the configuration files. Provide them via environment variables instead. Secrets can be
 populated from a secret store (e.g. HashiCorp Vault) into environment variables before the process starts.
