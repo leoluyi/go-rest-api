@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [v2.8.0] - 2026-02-21
 
 ### Fixed
+- `internal/config/config_test.go`: updated all `Load` call sites to drop the stale logger argument after the merged PR removed it from the function signature
 - **`CurrentUser()` always returned nil** (`internal/auth/middleware.go`): the JWT `Handler()` middleware only verified and authenticated the token but never propagated the `id`/`name` claims into the auth context key that `CurrentUser()` reads. An `enrich` step is now chained after `jwtauth.Authenticator` to call `WithUser()` with the JWT claims, making `CurrentUser()` work correctly in all downstream handlers
 - `entity.User` struct was missing `json` and `db` struct tags, preventing correct JSON serialisation and sqlx row scanning
 
@@ -17,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `middleware.RequestSize(1 MB)` middleware rejects oversized request bodies with HTTP 413 before they reach handlers
 - Configurable graceful shutdown timeout via `shutdown_timeout_seconds` config field / `APP_SHUTDOWN_TIMEOUT_SECONDS` env var (default 10 s, was hardcoded)
 - Configurable database connection pool: `db_max_open_conns`, `db_max_idle_conns`, `db_conn_max_lifetime_minutes` config fields (previously hardcoded in `main.go`)
+- `make vendor` target — runs `go mod tidy && go mod vendor` to keep the vendor directory in sync after dependency changes
 - `make vuln` target — runs `govulncheck ./...` to scan for known CVEs in dependencies
 - `make install-tools` target — installs `govulncheck` and `swag`
 - `make pre-commit` target — runs `fmt`, `lint`, `test`, and `vuln` in sequence
@@ -30,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `-race` flag added to `make test` for data-race detection
 - `postgres:18-alpine` reverted to `postgres:17-alpine` in `make db-start` (18 does not exist)
 - `local.yml` updated with new optional config fields for documentation purposes
+- Removed unused `FSWATCH_FILE` variable from Makefile
 
 ### Database
 - `DROP TABLE album` in init rollback migration changed to `DROP TABLE IF EXISTS album CASCADE` to handle foreign-key presence without error
