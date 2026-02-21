@@ -69,6 +69,16 @@ func buildRequest(requestID, correlationID string) *http.Request {
 	return req
 }
 
+func TestGetRequestID(t *testing.T) {
+	// Returns empty string when no request ID is in context.
+	assert.Empty(t, GetRequestID(context.Background()))
+
+	// Returns the correct ID when enriched via WithRequest.
+	req := buildRequest("my-request-id", "")
+	ctx := WithRequest(context.Background(), req)
+	assert.Equal(t, "my-request-id", GetRequestID(ctx))
+}
+
 func TestNewForTest(t *testing.T) {
 	logger, entries := NewForTest()
 	assert.Equal(t, 0, entries.Len())
