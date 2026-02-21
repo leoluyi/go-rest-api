@@ -113,16 +113,59 @@ The kit uses the following Go packages:
 
 | Concern | Package |
 |---------|---------|
-| Router | [go-chi/chi/v5](https://github.com/go-chi/chi) |
-| JWT middleware | [go-chi/jwtauth/v5](https://github.com/go-chi/jwtauth) |
-| JWT signing | [golang-jwt/jwt/v4](https://github.com/golang-jwt/jwt) |
-| CORS | [go-chi/cors](https://github.com/go-chi/cors) |
-| Database access | [jmoiron/sqlx](https://github.com/jmoiron/sqlx) + [lib/pq](https://github.com/lib/pq) |
-| Database migration | [golang-migrate](https://github.com/golang-migrate/migrate) |
-| Data validation | [go-playground/validator/v10](https://github.com/go-playground/validator) |
-| Logging | [uber-go/zap](https://github.com/uber-go/zap) |
-| Metrics | [prometheus/client_golang](https://github.com/prometheus/client_golang) |
-| API docs | [swaggo/swag](https://github.com/swaggo/swag) |
+| Router | [go-chi/chi/v5](https://github.com/go-chi/chi) v5.2.5 |
+| JWT middleware | [go-chi/jwtauth/v5](https://github.com/go-chi/jwtauth) v5.3.3 |
+| JWT signing | [golang-jwt/jwt/v4](https://github.com/golang-jwt/jwt) v4.5.2 |
+| CORS | [go-chi/cors](https://github.com/go-chi/cors) v1.2.2 |
+| Database access | [jmoiron/sqlx](https://github.com/jmoiron/sqlx) v1.4.0 + [lib/pq](https://github.com/lib/pq) v1.11.2 |
+| Database migration | [golang-migrate/migrate/v4](https://github.com/golang-migrate/migrate) v4.19.1 |
+| Data validation | [go-playground/validator/v10](https://github.com/go-playground/validator) v10.30.1 |
+| Logging | [uber-go/zap](https://github.com/uber-go/zap) v1.27.1 |
+| Metrics | [prometheus/client_golang](https://github.com/prometheus/client_golang) v1.23.2 |
+| ID generation | [google/uuid](https://github.com/google/uuid) v1.6.0 |
+| Env config | [qiangxue/go-env](https://github.com/qiangxue/go-env) v1.0.1 |
+| API docs | [swaggo/swag](https://github.com/swaggo/swag) v1.16.6 + [swaggo/http-swagger](https://github.com/swaggo/http-swagger) v1.3.4 |
+| Testing | [stretchr/testify](https://github.com/stretchr/testify) v1.11.1 |
+
+## Testing
+
+The project achieves **99.1% unit-test statement coverage** across all non-database packages.
+
+### Test layers
+
+Tests are organised in three layers following the same structure as production code:
+
+| Layer | File | Requires DB |
+|-------|------|-------------|
+| API (HTTP handlers) | `internal/<feature>/api_test.go` | No — mocks the service |
+| Service (business logic) | `internal/<feature>/service_test.go` | No — mocks the repository |
+| Repository (SQL) | `internal/<feature>/repository_test.go` | Yes — needs live PostgreSQL |
+
+### Running tests
+
+```shell
+# All tests — requires PostgreSQL running (see make db-start)
+make test
+
+# Unit tests only — no database needed
+go test $(go list ./... | grep -v 'pkg/dbcontext\|internal/album$\|internal/test$\|cmd/server\|docs')
+
+# Single feature
+go test ./internal/album/... -run TestAPI
+
+# Open HTML coverage report
+make test-cover
+```
+
+### Test helpers
+
+| Helper | Location | Purpose |
+|--------|----------|---------|
+| `test.MockRouter(logger)` | `internal/test/mock.go` | Chi router with accesslog, error-recovery, and CORS middleware wired in |
+| `test.Endpoint(t, router, tc)` | `internal/test/api.go` | Table-driven HTTP round-trip with glob-pattern body matching |
+| `auth.MockAuthHandler` | `internal/auth/middleware.go` | Drops auth check; injects a fixed test identity into the context |
+| `auth.MockAuthHeader()` | `internal/auth/middleware.go` | Returns `http.Header` with `Authorization: TEST` |
+| `log.NewForTest()` | `pkg/log/logger.go` | In-memory logger plus an observable entry buffer for log assertions |
 
 ## Getting Started
 
