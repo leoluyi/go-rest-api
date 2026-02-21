@@ -10,7 +10,6 @@ APP_DSN ?= $(shell sed -n 's/^dsn:[[:space:]]*"\(.*\)"/\1/p' $(CONFIG_FILE))
 MIGRATE := docker run --rm --name migrate -v $(shell pwd)/migrations:/migrations --network host migrate/migrate:v4.19.1 -path=/migrations/ -database "$(APP_DSN)"
 
 PID_FILE := './.pid'
-FSWATCH_FILE := './fswatch.cfg'
 
 .PHONY: default
 default: help
@@ -127,6 +126,11 @@ migrate-reset: ## reset database and re-run all migrations
 	@$(MIGRATE) drop -f
 	@echo "Running all database migrations..."
 	@$(MIGRATE) up
+
+.PHONY: vendor
+vendor: ## tidy go.mod and sync the vendor directory
+	go mod tidy
+	go mod vendor
 
 .PHONY: vuln
 vuln: ## scan for known vulnerabilities in dependencies (requires govulncheck)
